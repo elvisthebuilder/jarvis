@@ -59,7 +59,7 @@ async def run_onboarding():
             console.print("\n[bold yellow]! Existing configuration detected.[/bold yellow]")
             console.print("  Sir, you may choose specific neural modules to re-synchronize.")
             
-            phases_to_run = checkboxlist_dialog(
+            phases_to_run = await checkboxlist_dialog(
                 title="Neural Handshake Selection",
                 text="Use [Space] to select phases and [Enter] to confirm:",
                 values=[
@@ -68,7 +68,7 @@ async def run_onboarding():
                     ("3", "Phase 3: Neural OSINT Synchronization"),
                 ],
                 default_values=["1", "2", "3"]
-            ).run()
+            ).run_async()
             
             if not phases_to_run:
                 console.print("\n[bold green]✓ Neural handshake remains intact. No changes requested.[/bold green]\n")
