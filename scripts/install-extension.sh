@@ -8,10 +8,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "Installing $UUID to $EXT_DIR..."
 
-# Create directory
+# Create directory if it doesn't exist
 mkdir -p "$EXT_DIR"
 
-# Copy files
+# Cleanly synchronize files (remove old files before copying new ones to avoid stale state)
+rm -rf "$EXT_DIR/"*
 cp -r "$PROJECT_ROOT/extensions/$UUID/"* "$EXT_DIR/"
 
 # Compile schemas
@@ -36,11 +37,8 @@ fi
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/jarvis/ name "Jarvis Assistant"
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/jarvis/ command "$PROJECT_ROOT/.venv/bin/python -m jarvis.daemon --toggle"
 
-# Only set default binding if it's currently empty (don't overwrite user's custom choice on upgrade)
-CURRENT_KEY=$(gsettings get org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/jarvis/ binding)
-if [ "$CURRENT_KEY" = "''" ]; then
-    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/jarvis/ binding "<Super><Shift>j"
-fi
+# Set the preferred shortcut: <Super><Shift>j
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/jarvis/ binding "<Super><Shift>j"
 
 echo "--------------------------------------------------------"
 echo "Installation complete, Sir."
@@ -48,5 +46,5 @@ echo ""
 echo "1. Log out and log back in (strongly recommended for Wayland)."
 echo "2. Open 'Extensions' or 'Extension Manager' app."
 echo "3. Enable 'J.A.R.V.I.S. Assistant'."
-echo "4. Press Super+J to summon me."
+echo "4. Press Super + Shift + J to summon me."
 echo "--------------------------------------------------------"

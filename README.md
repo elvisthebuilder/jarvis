@@ -59,6 +59,17 @@ curl -sSL https://raw.githubusercontent.com/elvisthebuilder/jarvis/main/scripts/
 
 ---
 
+## 🛠️ Management Suite
+
+Maintain and synchronize your production system with these dedicated utility scripts:
+
+| Command | Action | Description |
+|---|---|---|
+| **Update** | `bash scripts/update.sh` | Pull latest core code and re-sync the neural environment. |
+| **Uninstall** | `bash scripts/uninstall.sh` | Decommission J.A.R.V.I.S. cleanly and choose how to handle your memory. |
+
+---
+
 ## 🎹 CLI Orchestration
 
 | Command | Action |
@@ -79,4 +90,4 @@ curl -sSL https://raw.githubusercontent.com/elvisthebuilder/jarvis/main/scripts/
 ---
 
 > [!TIP]
-> Use **Super + J** (configured via Gnome Shortcut) to summon the Jarvis Overlay at any time once the daemon is active.
+> Use **Super + Shift + J** (configured via Gnome Shortcut) to summon the Jarvis Overlay at any time once the daemon is active.
