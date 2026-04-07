@@ -138,8 +138,8 @@ echo -e "${GREEN}  ✓ Linked 'jarvis' to ~/.local/bin/jarvis${NC}"
 echo -e "${YELLOW}[7/7]${NC} Initiating Neural Handshake..."
 echo ""
 
-# Run the production command directly
-"$HOME/.local/bin/jarvis" onboard
+# Run the production command directly with full terminal access
+"$HOME/.local/bin/jarvis" onboard < /dev/tty
 
 echo ""
 echo -e "${GREEN}${BOLD}  ✦ Production installation complete, Sir!${NC}"
