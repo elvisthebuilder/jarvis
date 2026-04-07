@@ -114,7 +114,7 @@ After=graphical-session.target
 Type=simple
 ExecStart=${TARGET_DIR}/.venv/bin/python -m jarvis.daemon --daemon
 WorkingDirectory=${TARGET_DIR}
-EnvironmentFile=${TARGET_DIR}/.env
+EnvironmentFile=-${TARGET_DIR}/.env
 Restart=on-failure
 RestartSec=5
 
