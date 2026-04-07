@@ -19,9 +19,8 @@ from rich.table import Table
 from rich.live import Live
 from prompt_toolkit import PromptSession
 from prompt_toolkit.styles import Style
-from prompt_toolkit.shortcuts import checkboxlist_dialog
 
-from .config.settings import save_config
+from .config.settings import save_config, _load_dotenv
 from .utils.resilience import retry_async
 
 console = Console()
@@ -52,23 +51,27 @@ async def run_onboarding():
 
         # Check for elective re-onboarding
         target_dir = os.path.expanduser("~/.local/share/jarvis")
-        env_exists = os.path.exists(os.path.join(target_dir, ".env"))
+        env_path = os.path.join(target_dir, ".env")
+        env_exists = os.path.exists(env_path)
         
         phases_to_run = ["1", "2", "3"]
         if env_exists:
+            # Load existing config so later phases have context
+            from pathlib import Path
+            _load_dotenv(Path(env_path))
+            
             console.print("\n[bold yellow]! Existing configuration detected.[/bold yellow]")
             console.print("  Sir, you may choose specific neural modules to re-synchronize.")
+            console.print("  [1] Profile Update  [2] Credentials Sync  [3] Neural OSINT dossier")
             
-            phases_to_run = await checkboxlist_dialog(
-                title="Neural Handshake Selection",
-                text="Use [Space] to select phases and [Enter] to confirm:",
-                values=[
-                    ("1", "Phase 1: User Profiling (Title, Name, Interests)"),
-                    ("2", "Phase 2: Operational Credentials (API Keys)"),
-                    ("3", "Phase 3: Neural OSINT Synchronization"),
-                ],
-                default_values=["1", "2", "3"]
-            ).run_async()
+            try:
+                choice = await session.prompt_async(
+                    "  Selection (e.g., 1,3 or Enter for all): ", 
+                    default="1,2,3"
+                )
+                phases_to_run = [p.strip() for p in choice.split(",") if p.strip()]
+            except KeyboardInterrupt:
+                return
             
             if not phases_to_run:
                 console.print("\n[bold green]✓ Neural handshake remains intact. No changes requested.[/bold green]\n")
@@ -93,6 +96,7 @@ async def run_onboarding():
             updates.update({
                 "JARVIS_USER_TITLE": title,
                 "JARVIS_USER_NAME": name,
+                "JARVIS_USER_HANDLE": aliases,
                 "JARVIS_USER_OCCUPATION": occupation,
                 "JARVIS_USER_INTERESTS": interests,
                 "JARVIS_USER_CONTEXT": custom_context,
@@ -123,10 +127,10 @@ async def run_onboarding():
             
             osint_results = ""
             if sync_choice.upper() in ["R", "D"]:
-                # Use current name/aliases if Phase 1 wasn't run
-                p_name = updates.get("JARVIS_USER_NAME", os.getenv("JARVIS_USER_NAME", "User"))
-                p_aliases = updates.get("JARVIS_USER_HANDLE", os.getenv("JARVIS_USER_HANDLE", ""))
-                p_gemini = updates.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
+                # Use current name/aliases/key if various phases were skipped
+                p_name = updates.get("JARVIS_USER_NAME") or os.getenv("JARVIS_USER_NAME", "User")
+                p_aliases = updates.get("JARVIS_USER_HANDLE") or os.getenv("JARVIS_USER_HANDLE", "")
+                p_gemini = updates.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY", "")
                 
                 email = await session.prompt_async("  Enter your primary email for deep verification (Optional): ", default="")
                 
