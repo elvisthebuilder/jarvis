@@ -33,7 +33,7 @@ dependencies = [
 
     # OSINT & Reconnaissance
     "maigret>=0.4.0",
-    "holehe>=2.0.0",
+    "holehe>=1.6.0",
 ]
 
 [project.optional-dependencies]
