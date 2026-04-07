@@ -1,0 +1,103 @@
+/* J.A.R.V.I.S. 2.0 - Glassmorphism Dock Theme */
+
+.jarvis-dock {
+    background-color: rgba(18, 18, 18, 0.55);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    color: #ffffff;
+    min-height: 180px; /* Reduced width, so we need more height */
+    /* Blur is handled by Shell.BlurEffect in JS */
+}
+
+/* History Conversation Area */
+.jarvis-history-scroll {
+    min-height: 100px;
+    max-height: 480px; /* Stronger limit for dock aesthetics */
+    margin-bottom: 8px;
+    padding: 4px 12px;
+}
+
+.jarvis-history-box {
+    font-weight: normal; /* Avoid empty ruleset while keeping container selector */
+}
+
+/* Message Bubbles - Now clean text lines */
+.jarvis-msg-bubble {
+    padding: 6px 4px;
+    max-width: 95%;
+    font-size: 14px; /* User requested smaller */
+    background-color: transparent; /* Card removed */
+    border: none;
+}
+
+.jarvis-msg-user {
+    margin-left: 20px;
+    align-self: flex-end;
+    color: #00ffff; /* Vibrant Cyan */
+    text-align: right;
+}
+
+.jarvis-msg-jarvis {
+    margin-right: 20px;
+    align-self: flex-start;
+    color: #ffffff; /* Clean White */
+}
+
+.jarvis-msg-text {
+    line-height: 1.4;
+}
+
+.jarvis-thinking {
+    color: #ffffff;
+    font-style: italic;
+    font-size: 13px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+/* Bottom Input Dock Bar */
+.jarvis-input-dock {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 22px;
+    padding: 6px 12px;
+    /* spacing: 8px; moved to JS */
+}
+
+.jarvis-dock-entry {
+    background-color: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    padding: 8px;
+    caret-color: #00ffff;
+}
+
+.jarvis-dock-entry:focus {
+    color: #ffffff; /* Avoid empty ruleset */
+}
+
+/* Icons and Buttons */
+.jarvis-icon-button {
+    padding: 8px;
+    border-radius: 50%;
+    background-color: transparent;
+    transition: background-color 0.2s;
+}
+
+.jarvis-icon-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.jarvis-icon-button:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.jarvis-send-btn {
+    color: #00ffff;
+}
+
+.jarvis-dock-right {
+    font-weight: normal; /* Avoid empty ruleset */
+}

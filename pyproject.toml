@@ -1,0 +1,58 @@
+[project]
+name = "jarvis"
+version = "0.1.0"
+description = "J.A.R.V.I.S. — An intelligent desktop companion for Linux"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Gilbert Afrifa" }]
+
+dependencies = [
+    # AI / LLM
+    "ollama>=0.4.0",
+    "google-genai>=1.0.0",
+
+    # Async
+    "aiosqlite>=0.20.0",
+
+    # D-Bus
+    "dbus-next>=0.2.3",
+
+    # System interaction
+    "psutil>=6.0.0",
+
+    # Configuration
+    "tomli>=2.0.0; python_version < '3.11'",
+
+    # CLI
+    "rich>=13.0.0",
+    "prompt-toolkit>=3.0.0",
+]
+
+[project.optional-dependencies]
+voice = [
+    "faster-whisper>=1.0.0",
+    "piper-tts>=1.2.0",
+    "openwakeword>=0.6.0",
+    "sounddevice>=0.5.0",
+    "numpy>=1.26.0",
+]
+
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.6.0",
+]
+
+[project.scripts]
+jarvis = "jarvis.daemon:main"
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["jarvis*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

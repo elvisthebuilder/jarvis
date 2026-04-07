@@ -1,0 +1,8 @@
+{
+  "name": "J.A.R.V.I.S. Assistant",
+  "description": "A premium, minimalist AI assistant overlay for GNOME, powered by Gemma 4 and Gemini.",
+  "uuid": "jarvis-overlay@stark.industries",
+  "shell-version": ["45", "46", "47", "48", "49"],
+  "url": "https://github.com/starkindustries/jarvis-linux",
+  "version": 1
+}
