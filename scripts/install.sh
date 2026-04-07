@@ -103,13 +103,21 @@ EOF
 systemctl --user daemon-reload
 echo -e "${GREEN}  ✓ Background service registered${NC}"
 
-# ── Step 6: Launch Onboarding ─────────────────────────
+# ── Step 6: Create Global Command Link ───────────────────
 
-echo -e "${YELLOW}[6/6]${NC} Initiating Neural Handshake..."
+echo -e "${YELLOW}[6/7]${NC} Registering global command..."
+mkdir -p "$HOME/.local/bin"
+# Force link to the production venv executable
+ln -sf "$TARGET_DIR/.venv/bin/jarvis" "$HOME/.local/bin/jarvis"
+echo -e "${GREEN}  ✓ Linked 'jarvis' to ~/.local/bin/jarvis${NC}"
+
+# ── Step 7: Launch Onboarding ─────────────────────────
+
+echo -e "${YELLOW}[7/7]${NC} Initiating Neural Handshake..."
 echo ""
 
-# We run the daemon in CLI mode, which will trigger onboarding because .env hasn't been set up
-.venv/bin/python -m jarvis.daemon
+# Run the production command directly
+"$HOME/.local/bin/jarvis" onboard
 
 echo ""
 echo -e "${GREEN}${BOLD}  ✦ Production installation complete, Sir!${NC}"

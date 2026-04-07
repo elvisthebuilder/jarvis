@@ -205,20 +205,80 @@ async def run_cli(config: JarvisConfig):
 
 # ── Main Entry Point ────────────────────────────────────────
 
-def main():
-    """Main entry point for the Jarvis daemon."""
-    # Parse mode from args
-    mode = "cli"
-    if "--daemon" in sys.argv:
-        mode = "daemon"
-    elif "--toggle" in sys.argv:
-        mode = "toggle"
+import argparse
+import subprocess
 
-    # Load config
+# ── Main Entry Point ────────────────────────────────────────
+
+def main():
+    """Main entry point for the J.A.R.V.I.S. Command & Memory Suite."""
+    # Determine project root dynamically (package is in <root>/jarvis)
+    pkg_dir = Path(__file__).resolve().parent
+    project_root = pkg_dir.parent
+    scripts_dir = project_root / "scripts"
+
+    parser = argparse.ArgumentParser(
+        description="J.A.R.V.I.S. — Just A Rather Very Intelligent System",
+        prog="jarvis"
+    )
+    
+    # Subcommands
+    subparsers = parser.add_subparsers(dest="command", help="Management commands")
+    
+    # jarvis onboard
+    subparsers.add_parser("onboard", help="Initiate the Stark Interview (re-profiling)")
+    
+    # jarvis update
+    subparsers.add_parser("update", help="Synchronize with the latest core code")
+    
+    # jarvis uninstall
+    subparsers.add_parser("uninstall", help="Cleanly decommission J.A.R.V.I.S. from this system")
+    
+    # jarvis stop/restart
+    subparsers.add_parser("stop", help="Shutdown the background daemon")
+    subparsers.add_parser("restart", help="Restart the background daemon")
+    subparsers.add_parser("status", help="Check J.A.R.V.I.S. vitals and service state")
+    
+    # Default behavior options (when no subcommand is used)
+    parser.add_argument("--daemon", action="store_true", help="Start as a background D-Bus service")
+    parser.add_argument("--toggle", action="store_true", help="Toggle the UI overlay")
+    parser.add_argument("--incognito", action="store_true", help="Start a private session (no context/logging)")
+    
+    args = parser.parse_args()
+
+    # Handle Subcommands
+    if args.command == "onboard":
+        asyncio.run(run_onboarding())
+        sys.exit(0)
+    elif args.command == "update":
+        script_path = scripts_dir / "update.sh"
+        if script_path.exists():
+            subprocess.run(["bash", str(script_path)], cwd=str(project_root))
+        else:
+            print(f"Error: Management script {script_path} not found, Sir.")
+        sys.exit(0)
+    elif args.command == "uninstall":
+        script_path = scripts_dir / "uninstall.sh"
+        if script_path.exists():
+            subprocess.run(["bash", str(script_path)], cwd=str(project_root))
+        else:
+            print(f"Error: Management script {script_path} not found, Sir.")
+        sys.exit(0)
+    elif args.command in ["stop", "restart", "status"]:
+        cmd = ["systemctl", "--user", args.command, "jarvis"]
+        if args.command == "status":
+            subprocess.run(cmd)
+        else:
+            subprocess.run(cmd)
+            print(f"Deployment command '{args.command}' executed successfully, Sir.")
+        sys.exit(0)
+
+    # Standard Execution Logic
+    mode = "daemon" if args.daemon else ("toggle" if args.toggle else "cli")
+    
+    # Load config and setup logging
     config = load_config()
     setup_logging(config)
-
-    logger.info(f"Jarvis starting in {mode} mode")
 
     if mode == "toggle":
         asyncio.run(run_toggle_command())
@@ -229,13 +289,12 @@ def main():
     if not onboarding_done and mode == "cli":
         try:
             asyncio.run(run_onboarding())
-            # Reload config after onboarding
             config = load_config()
         except KeyboardInterrupt:
             console.print("\n  [error]Onboarding interrupted. Please restart Jarvis, Sir.[/error]\n")
             sys.exit(1)
     elif not onboarding_done and mode == "daemon":
-        logger.error("Onboarding not completed! Please run 'python -m jarvis.daemon' in your terminal first.")
+        logger.error("Onboarding not completed! Please run 'jarvis' in your terminal first.")
         sys.exit(1)
 
     # Configure shell security
@@ -244,11 +303,29 @@ def main():
     if mode == "cli":
         # Interactive CLI mode
         try:
-            asyncio.run(run_cli(config))
+            # Initialize Assistant Core with optional memory sync
+            memory = MemoryStore(config.daemon.db_path)
+            asyncio.run(memory.initialize())
+            
+            preferences = PreferenceManager(memory)
+            asyncio.run(preferences.load_preferences())
+            
+            agent = JarvisAgent(config, memory, preferences)
+            
+            if args.incognito:
+                agent.set_incognito(True)
+            else:
+                # Total Recall: Load historical context
+                asyncio.run(agent.load_last_context(limit=5))
+            
+            asyncio.run(run_cli_with_agent(agent, config))
         except KeyboardInterrupt:
             console.print("\n  [jarvis]✦ Goodbye, Sir.[/jarvis]\n")
+        finally:
+            if 'memory' in locals():
+                asyncio.run(memory.close())
     else:
-        # Daemon mode (D-Bus service) — Phase 2
+        # Daemon mode
         try:
             asyncio.run(run_daemon(config))
         except KeyboardInterrupt:
@@ -258,8 +335,90 @@ def main():
             sys.exit(1)
 
 
+async def run_cli_with_agent(agent: JarvisAgent, config: JarvisConfig):
+    """Run Jarvis in interactive CLI mode with a neural-linked agent."""
+    console.print(Panel(
+        Text(BANNER, style="bold cyan", justify="center"),
+        border_style="cyan",
+        title="[bold white]Command Central[/bold white]",
+        subtitle="[dim]Neural Link Established[/dim]",
+        padding=(1, 2)
+    ))
+    
+    # Contextual greeting based on time (only if not incognito)
+    if not agent._incognito:
+        hour = datetime.now().hour
+        if 5 <= hour < 12:
+            greeting = f"Good morning, {config.user_title}."
+        elif 12 <= hour < 17:
+            greeting = f"Good afternoon, {config.user_title}."
+        elif 17 <= hour < 21:
+            greeting = f"Good evening, {config.user_title}."
+        else:
+            greeting = f"Burning the midnight oil again, {config.user_title}?"
+        
+        console.print(f"  [jarvis]✦ {greeting} Ready when you are.[/jarvis]\n")
+    else:
+        console.print("  [jarvis]✦ Incognito session started. I am listening, Sir.[/jarvis]\n")
+
+    # Set up command history (shell history, not conversation history)
+    history_path = config.daemon.data_dir / "cli_history"
+    session = PromptSession(history=FileHistory(str(history_path)))
+
+    # Main loop
+    while True:
+        try:
+            user_input = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: session.prompt("  You → "),
+            )
+
+            if not user_input.strip():
+                continue
+
+            # Special commands
+            cmd = user_input.strip().lower()
+            if cmd in ("exit", "quit", "goodbye", "bye"):
+                console.print("\n  [jarvis]✦ Goodbye, Sir. I'll be here when you need me.[/jarvis]\n")
+                break
+            if cmd == "/tools":
+                tools = registry.list_tools()
+                console.print(f"\n  [tool]Registered tools ({len(tools)}):[/tool]")
+                for tool in tools:
+                    console.print(f"    • {tool}")
+                continue
+            if cmd == "/clear":
+                agent.new_session()
+                console.print("\n  [info]Session cleared.[/info]")
+                continue
+            if cmd == "/status":
+                count = await agent.memory.get_interaction_count()
+                prefs = await agent.memory.get_all_preferences()
+                console.print(f"\n  [info]Interactions: {count} | Preferences: {len(prefs)} | "
+                            f"Session: {agent.session_id}[/info]")
+                continue
+
+            # Process with Jarvis
+            console.print("\n  [info]⟳ thinking...[/info]", end="\r")
+            
+            response = await agent.process(user_input)
+            
+            # Clear the "thinking" line and display response
+            console.print(f"  [jarvis]✦ {response}[/jarvis]")
+
+        except KeyboardInterrupt:
+            console.print("\n\n  [jarvis]✦ Interrupted. Type 'exit' to leave, Sir.[/jarvis]")
+            continue
+        except EOFError:
+            console.print("\n  [jarvis]✦ Signing off, Sir.[/jarvis]\n")
+            break
+        except Exception as e:
+            console.print(f"\n  [error]Error: {e}[/error]")
+            logging.getLogger(__name__).exception("CLI error")
+
+
 async def run_daemon(config: JarvisConfig):
-    """Run Jarvis as a background D-Bus service."""
+    """Run Jarvis as a background D-Bus service with Total Recall enabled."""
     # Initialize components
     memory = MemoryStore(config.daemon.db_path)
     await memory.initialize()
@@ -268,6 +427,9 @@ async def run_daemon(config: JarvisConfig):
     await preferences.load_preferences()
 
     agent = JarvisAgent(config, memory, preferences)
+    
+    # Total Recall: Load history before starting service
+    await agent.load_last_context(limit=5)
     
     # Start D-Bus service
     logger.info("Starting D-Bus service...")

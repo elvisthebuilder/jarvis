@@ -61,12 +61,24 @@ curl -sSL https://raw.githubusercontent.com/elvisthebuilder/jarvis/main/scripts/
 
 ## 🛠️ Management Suite
 
-Maintain and synchronize your production system with these dedicated utility scripts:
+Maintain and synchronize your production system with the unified `jarvis` command:
 
 | Command | Action | Description |
 |---|---|---|
-| **Update** | `bash scripts/update.sh` | Pull latest core code and re-sync the neural environment. |
-| **Uninstall** | `bash scripts/uninstall.sh` | Decommission J.A.R.V.I.S. cleanly and choose how to handle your memory. |
+| **`jarvis onboard`** | Re-Interview | Force-trigger the "Stark Interview" to update credentials or your profile. |
+| **`jarvis update`** | Synchronize | Pull latest core code and re-sync the neural environment. |
+| **`jarvis uninstall`** | Decommission | Cleanly remove J.A.R.V.I.S. with an optional memory purge. |
+| **`jarvis restart`** | Warm Boot | Restart the background daemon service. |
+| **`jarvis stop`** | Power Down | Gracefully shutdown the background service. |
+| **`jarvis status`** | Vitals | Check system health, version, and synchronicity. |
+
+### 🔒 Privacy Controls
+
+Start a secure, private session that does not load previous history or log any new interactions:
+
+```bash
+jarvis --incognito
+```
 
 ---
 

@@ -97,6 +97,20 @@ class ConversationManager:
         topics = [m.content[:80] for m in recent]
         return f"Recent requests: {'; '.join(topics)}"
 
+    def load_history(self, messages: list[dict]) -> None:
+        """Inject historical messages into the conversation.
+        
+        Args:
+            messages: List of dicts with 'role' and 'content'.
+        """
+        for msg in messages:
+            self.messages.append(Message(
+                role=msg.get("role", "user"),
+                content=msg.get("content", ""),
+                timestamp=msg.get("timestamp", datetime.now())
+            ))
+        self._trim_if_needed()
+
     def clear(self) -> None:
         """Clear conversation history and start fresh."""
         self.messages.clear()

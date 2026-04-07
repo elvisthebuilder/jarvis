@@ -55,10 +55,43 @@ class JarvisAgent:
         if config.gemini.api_key:
             self._gemini_client = genai.Client(api_key=config.gemini.api_key)
 
+        self._incognito = False
+
         logger.info(
             f"Agent initialized — Ollama: {config.ollama.model}@{config.ollama.host} | "
             f"Gemini: {'available' if self._gemini_client else 'not configured'}"
         )
+
+    def set_incognito(self, enabled: bool = True):
+        """Enable or disable incognito mode for this agent."""
+        self._incognito = enabled
+        if enabled:
+            logger.info("Incognito mode activated — no context will be loaded or logged.")
+
+    async def load_last_context(self, limit: int = 5):
+        """Fetch and load the most recent interactions from the database.
+        
+        This enables 'Total Recall' — your terminal session will remember
+        what you just asked J.A.R.V.I.S. in the GNOME overlay.
+        """
+        if self._incognito:
+            return
+
+        try:
+            # Fetch last 5 interactions (user input + assistant response)
+            recent = await self.memory.get_recent_interactions(limit=limit)
+            
+            # Interactions are ordered by timestamp DESC, so we reverse for chronological order
+            history = []
+            for entry in reversed(recent):
+                history.append({"role": "user", "content": entry["user_input"]})
+                history.append({"role": "assistant", "content": entry["assistant_response"]})
+            
+            if history:
+                self.conversation.load_history(history)
+                logger.info(f"Synchronized context: Loaded {len(recent)} recent interactions.")
+        except Exception as e:
+            logger.warning(f"Failed to synchronize context: {e}")
 
     async def process(self, user_input: str) -> str:
         """Process a user request and return Jarvis's response.
@@ -90,12 +123,13 @@ class JarvisAgent:
         # Add response to conversation
         self.conversation.add_assistant_message(response)
 
-        # Log interaction for learning
-        await self.memory.log_interaction(
-            user_input=user_input,
-            assistant_response=response,
-            session_id=self.session_id,
-        )
+        # Log interaction for learning (unless incognito)
+        if not self._incognito:
+            await self.memory.log_interaction(
+                user_input=user_input,
+                assistant_response=response,
+                session_id=self.session_id,
+            )
 
         return response
 
