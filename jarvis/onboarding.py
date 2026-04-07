@@ -187,13 +187,16 @@ async def _perform_neural_sync(name: str, aliases: str, occupation: str, scan_ty
             return ""
 
 async def _call_gemini_search(client: genai.Client, query: str) -> str:
-    """Internal helper to call Gemini's search grounding asynchronously."""
+    """Internal helper to call Gemini's search grounding asynchronously with J.A.R.V.I.S. persona."""
     try:
         system_instruction = (
-            "You are a professional intelligence analyst. Conduct an OSINT search for the user. "
-            "Return a concise 'Intelligence Brief' summarizing their digital presence, "
-            "social media, professional projects, and known interests. "
-            "Format your response as a clear, bulleted summary. Do not include introductory filler."
+            "You are J.A.R.V.I.S., a sophisticated AI assistant. You have just conducted a global "
+            "intelligence sweep for your primary user. Present your findings as an 'Intelligence Brief'. "
+            "Address the user formally (as 'Sir'). Be professional, efficient, and slightly protective. "
+            "If you find information, present it as 'I have located the following data points...'. "
+            "If you find nothing, explain that you were unable to find a direct match but mention any interesting leads. "
+            "Use clear bullet points for data, but keep the overall tone conversational and distinctly J.A.R.V.I.S.-like. "
+            "Do not include generic AI disclaimers or introductory filler like 'As a professional analyst...'"
         )
 
         response = await client.aio.models.generate_content(
