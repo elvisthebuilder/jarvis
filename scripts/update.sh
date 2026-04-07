@@ -35,8 +35,28 @@ pip install -e "." -q
 echo -e "${YELLOW}  󰔦 Synchronizing UI Overlay...${NC}"
 bash scripts/install-extension.sh > /dev/null
 
-# 4. Restart services
-echo -e "${YELLOW}  󰓦 Restarting background services...${NC}"
+# 4. Refresh & Restart services
+echo -e "${YELLOW}  󰓦 Synchronizing background services...${NC}"
+mkdir -p "$HOME/.config/systemd/user"
+SERVICE_FILE="$HOME/.config/systemd/user/jarvis.service"
+
+cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=J.A.R.V.I.S. — Intelligent Desktop Assistant
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=${TARGET_DIR}/.venv/bin/python -m jarvis.daemon --daemon
+WorkingDirectory=${TARGET_DIR}
+EnvironmentFile=-${TARGET_DIR}/.env
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+
 systemctl --user daemon-reload
 systemctl --user restart jarvis
 
