@@ -25,21 +25,43 @@ echo -e "${NC}"
 echo -e "${CYAN}  Production Rollout — J.A.R.V.I.S. 2.0${NC}"
 echo ""
 
-# ── Step 1: Clone Repository ─────────────────────────
+# ── Step 1: Repository Synchronization ───────────────────
+
+echo -e "${YELLOW}[1/7]${NC} Synchronizing core repository..."
 
 if [ ! -d "$TARGET_DIR" ]; then
-    echo -e "${YELLOW}[1/6]${NC} Initializing core repository..."
     git clone "$REPO_URL" "$TARGET_DIR" -q
     echo -e "${GREEN}  ✓ Repository initialized at $TARGET_DIR${NC}"
 else
-    echo -e "${GREEN}  ✓ Repository already exists at $TARGET_DIR${NC}"
+    # Directory exists — ensure it has the codebase
+    mkdir -p "$TARGET_DIR"
+    cd "$TARGET_DIR"
+    
+    if [ ! -d ".git" ]; then
+        echo -e "${YELLOW}  󰃢 Legacy directory detected. Repairing neural link...${NC}"
+        git init -q
+        git remote add origin "$REPO_URL" 2>/dev/null || git remote set-url origin "$REPO_URL"
+        git fetch origin main -q
+        git reset --hard origin/main -q
+    else
+        echo -e "${YELLOW}  󰚰 Updating existing production environment...${NC}"
+        git fetch origin main -q
+        git reset --hard origin/main -q
+    fi
+    echo -e "${GREEN}  ✓ Repository synchronized in $TARGET_DIR${NC}"
+fi
+
+# Verify we have a valid project
+if [ ! -f "$TARGET_DIR/pyproject.toml" ]; then
+    echo -e "${RED}Error: Failed to synchronize J.A.R.V.I.S. codebase in $TARGET_DIR${NC}"
+    exit 1
 fi
 
 cd "$TARGET_DIR"
 
 # ── Step 2: System Dependencies ──────────────────────
 
-echo -e "${YELLOW}[2/6]${NC} Installing system dependencies..."
+echo -e "${YELLOW}[2/7]${NC} Installing system dependencies..."
 
 sudo apt update -qq
 sudo apt install -y -qq \
@@ -58,7 +80,7 @@ echo -e "${GREEN}  ✓ System dependencies installed${NC}"
 
 # ── Step 3: Python Environment ───────────────────────
 
-echo -e "${YELLOW}[3/6]${NC} Synchronizing Python environment..."
+echo -e "${YELLOW}[3/7]${NC} Synchronizing Python environment..."
 
 if [ ! -d ".venv" ]; then
     python3 -m venv .venv
@@ -72,13 +94,13 @@ echo -e "${GREEN}  ✓ Neural environment synced${NC}"
 
 # ── Step 4: GNOME Extension ──────────────────────────
 
-echo -e "${YELLOW}[4/6]${NC} Linking Neural Overlay (GNOME Extension)..."
+echo -e "${YELLOW}[4/7]${NC} Linking Neural Overlay (GNOME Extension)..."
 bash scripts/install-extension.sh > /dev/null
 echo -e "${GREEN}  ✓ UI Overlay linked${NC}"
 
 # ── Step 5: Background Service ───────────────────────
 
-echo -e "${YELLOW}[5/6]${NC} Registering background service..."
+echo -e "${YELLOW}[5/7]${NC} Registering background service..."
 
 mkdir -p "$HOME/.config/systemd/user"
 SERVICE_FILE="$HOME/.config/systemd/user/jarvis.service"
