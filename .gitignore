@@ -25,9 +25,11 @@ env/
 *.swo
 
 # Jarvis runtime data
-data/jarvis.db
-data/*.db-journal
+jarvis.db
+jarvis.db-journal
+data/
 logs/
+*.log
 
 # OS
 .DS_Store
