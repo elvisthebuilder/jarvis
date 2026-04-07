@@ -31,114 +31,117 @@ INTERVIEW_STYLE = Style.from_dict({
 
 async def run_onboarding():
     """Run the interactive onboarding session."""
-    session = PromptSession(style=INTERVIEW_STYLE)
-    
-    console.clear()
-    
-    # ── Welcome Banner ──────────────────────────────────────────
-    banner = Text("\nJ.A.R.V.I.S. SYSTEM INITIALIZATION\n", style="bold cyan")
-    console.print(Panel(
-        Text.assemble(
-            banner,
-            "\nInitializing the Just A Rather Very Intelligent System...\n",
-            "I require a brief interview to synchronize with my primary user.",
-        ),
-        border_style="cyan",
-        padding=(1, 2),
-    ))
-
-    # ── Phase 1: User Profile ──────────────────────────────────
-    console.print("\n[bold cyan]Phase 1: User Profiling[/bold cyan]")
-    
-    title = await session.prompt_async("  What is your preferred title? [Default: Sir]: ", default="Sir")
-    name = await session.prompt_async("  And your full name? [e.g. Tony Stark]: ", default="Tony Stark")
-    aliases = await session.prompt_async("  Any aliases or social handles I should look for? [e.g. elvisthebuilder]: ", default="")
-    occupation = await session.prompt_async("  And your primary occupation or role? [e.g. CEO of Stark Industries]: ", default="Engineer")
-    interests = await session.prompt_async("  Any specific interests or goals for my assistance? [e.g. coding, research]: ", default="innovation")
-    custom_context = await session.prompt_async("  Any additional context I should know about you? (Optional): ", default="")
-    
-    # ── Phase 2: Operations ────────────────────────────────────
-    console.print("\n[bold cyan]Phase 2: Operational Credentials[/bold cyan]")
-    console.print("  I require access to my neural backends to function.")
-    
-    ollama_key = await session.prompt_async("  Enter your Ollama Cloud (Gemma 4) API Key: ", is_password=True)
-    gemini_key = await session.prompt_async("  Enter your Gemini Flash (Live Search) API Key: ", is_password=True)
-
-    # ── Phase 3: Neural OSINT Sync ──────────────────────────────
-    console.print("\n[bold cyan]Phase 3: Neural OSINT Synchronization[/bold cyan]")
-    
-    sync_choice = await session.prompt_async(
-        "  Choose search intensity: [P]rofessional, [W]ide-net, or [S]kip [Default: P]: ", 
-        default="P",
-        is_password=False
-    )
-    
-    osint_results = ""
-    if sync_choice.upper() in ["P", "W"]:
-        osint_results = await _perform_neural_sync(name, aliases, occupation, sync_choice.upper(), gemini_key)
+    try:
+        session = PromptSession(style=INTERVIEW_STYLE)
         
-        # Confirmation & Modification
-        if osint_results:
-            console.print("\n[bold cyan]Intelligence Briefing:[/bold cyan]")
-            console.print(Panel(osint_results, border_style="dim white"))
+        console.clear()
+        
+        # ── Welcome Banner ──────────────────────────────────────────
+        banner = Text("\nJ.A.R.V.I.S. SYSTEM INITIALIZATION\n", style="bold cyan")
+        console.print(Panel(
+            Text.assemble(
+                banner,
+                "\nInitializing the Just A Rather Very Intelligent System...\n",
+                "I require a brief interview to synchronize with my primary user.",
+            ),
+            border_style="cyan",
+            padding=(1, 2),
+        ))
+
+        # ── Phase 1: User Profile ──────────────────────────────────
+        console.print("\n[bold cyan]Phase 1: User Profiling[/bold cyan]")
+        
+        title = await session.prompt_async("  What is your preferred title? [Default: Sir]: ", default="Sir")
+        name = await session.prompt_async("  And your full name? [e.g. Tony Stark]: ", default="Tony Stark")
+        aliases = await session.prompt_async("  Any aliases or social handles I should look for? [e.g. elvisthebuilder]: ", default="")
+        occupation = await session.prompt_async("  And your primary occupation or role? [e.g. CEO of Stark Industries]: ", default="Engineer")
+        interests = await session.prompt_async("  Any specific interests or goals for my assistance? [e.g. coding, research]: ", default="innovation")
+        custom_context = await session.prompt_async("  Any additional context I should know about you? (Optional): ", default="")
+        
+        # ── Phase 2: Operations ────────────────────────────────────
+        console.print("\n[bold cyan]Phase 2: Operational Credentials[/bold cyan]")
+        console.print("  I require access to my neural backends to function.")
+        
+        ollama_key = await session.prompt_async("  Enter your Ollama Cloud (Gemma 4) API Key: ", is_password=True)
+        gemini_key = await session.prompt_async("  Enter your Gemini Flash (Live Search) API Key: ", is_password=True)
+
+        # ── Phase 3: Neural OSINT Sync ──────────────────────────────
+        console.print("\n[bold cyan]Phase 3: Neural OSINT Synchronization[/bold cyan]")
+        
+        sync_choice = await session.prompt_async(
+            "  Choose search intensity: [P]rofessional, [W]ide-net, or [S]kip [Default: P]: ", 
+            default="P",
+            is_password=False
+        )
+        
+        osint_results = ""
+        if sync_choice.upper() in ["P", "W"]:
+            osint_results = await _perform_neural_sync(name, aliases, occupation, sync_choice.upper(), gemini_key)
             
-            sync_action = await session.prompt_async(
-                "\n  Action: [A]ccept, [M]odify, or [D]ecline findings? [Default: A]: ", 
-                default="A"
-            )
-            
-            if sync_action.upper() == "M":
-                # Allow the user to edit the findings directly in the terminal
-                console.print("\n[dim]Entering edit mode. You can modify the text below:[/dim]")
-                osint_results = await session.prompt_async(
-                    "> ", 
-                    default=osint_results, 
-                    multiline=True
+            # Confirmation & Modification
+            if osint_results:
+                console.print("\n[bold cyan]Intelligence Briefing:[/bold cyan]")
+                console.print(Panel(osint_results, border_style="dim white"))
+                
+                sync_action = await session.prompt_async(
+                    "\n  Action: [A]ccept, [M]odify, or [D]ecline findings? [Default: A]: ", 
+                    default="A"
                 )
-                console.print("[bold green]✓ Briefing updated.[/bold green]")
-            elif sync_action.upper() == "D":
-                osint_results = ""
-            # If A (Accept), proceed with current osint_results
-    
-    # Combined context for the system prompt
-    final_context = custom_context
-    if osint_results:
-        final_context = f"{custom_context}\n\nNeural Sync Briefing:\n{osint_results}"
+                
+                if sync_action.upper() == "M":
+                    # Allow the user to edit the findings directly in the terminal
+                    console.print("\n[dim]Entering edit mode. You can modify the text below:[/dim]")
+                    osint_results = await session.prompt_async(
+                        "> ", 
+                        default=osint_results, 
+                        multiline=True
+                    )
+                    console.print("[bold green]✓ Briefing updated.[/bold green]")
+                elif sync_action.upper() == "D":
+                    osint_results = ""
+                # If A (Accept), proceed with current osint_results
+        
+        # Combined context for the system prompt
+        final_context = custom_context
+        if osint_results:
+            final_context = f"{custom_context}\n\nNeural Sync Briefing:\n{osint_results}"
 
-    # ── Phase 4: Finalization ──────────────────────────────────
-    updates = {
-        "JARVIS_USER_TITLE": title,
-        "JARVIS_USER_NAME": name,
-        "JARVIS_USER_OCCUPATION": occupation,
-        "JARVIS_USER_INTERESTS": interests,
-        "JARVIS_USER_CONTEXT": final_context,
-        "OLLAMA_API_KEY": ollama_key,
-        "GEMINI_API_KEY": gemini_key,
-        "ONBOARDING_COMPLETED": "true",
-    }
-    
-    console.print("\n[bold yellow]Synchronizing core systems...[/bold yellow]")
-    save_config(updates)
-    
-    # Simulate some Jarvis-like 'loading'
-    with Live(Text("Uploading user profile...", style="dim white"), refresh_per_second=4) as live:
-        await asyncio.sleep(0.8)
-        live.update(Text("Mapping system permissions...", style="dim white"))
-        await asyncio.sleep(0.8)
-        live.update(Text("Finalizing neural handshake...", style="dim white"))
-        await asyncio.sleep(0.8)
+        # ── Phase 4: Finalization ──────────────────────────────────
+        updates = {
+            "JARVIS_USER_TITLE": title,
+            "JARVIS_USER_NAME": name,
+            "JARVIS_USER_OCCUPATION": occupation,
+            "JARVIS_USER_INTERESTS": interests,
+            "JARVIS_USER_CONTEXT": final_context,
+            "OLLAMA_API_KEY": ollama_key,
+            "GEMINI_API_KEY": gemini_key,
+            "ONBOARDING_COMPLETED": "true",
+        }
+        
+        console.print("\n[bold yellow]Synchronizing core systems...[/bold yellow]")
+        save_config(updates)
+        
+        # Simulate some Jarvis-like 'loading'
+        with Live(Text("Uploading user profile...", style="dim white"), refresh_per_second=4) as live:
+            await asyncio.sleep(0.8)
+            live.update(Text("Mapping system permissions...", style="dim white"))
+            await asyncio.sleep(0.8)
+            live.update(Text("Finalizing neural handshake...", style="dim white"))
+            await asyncio.sleep(0.8)
 
-    console.print(Panel(
-        f"[bold green]✓ Synchronization Complete.[/bold green]\n\n"
-        f"Welcome home, {name}. I've configured my systems to your specifications.\n"
-        f"You can now summon me with [bold cyan]Super+J[/bold cyan] at any time.",
-        title="[bold cyan]✦ J.A.R.V.I.S.[/bold cyan]",
-        border_style="cyan",
-        padding=(1, 2),
-    ))
-    
-    console.print("\n[dim]Press Enter to start J.A.R.V.I.S. for the first time...[/dim]")
-    await session.prompt_async("")
+        console.print(Panel(
+            f"[bold green]✓ Synchronization Complete.[/bold green]\n\n"
+            f"Welcome home, {name}. I've configured my systems to your specifications.\n"
+            f"You can now summon me with [bold cyan]Super+J[/bold cyan] at any time.",
+            title="[bold cyan]✦ J.A.R.V.I.S.[/bold cyan]",
+            border_style="cyan",
+            padding=(1, 2),
+        ))
+        
+        console.print("\n[dim]Press Enter to start J.A.R.V.I.S. for the first time...[/dim]")
+        await session.prompt_async("")
+    except KeyboardInterrupt:
+        return
 
 
 async def _perform_neural_sync(name: str, aliases: str, occupation: str, scan_type: str, api_key: str) -> str:

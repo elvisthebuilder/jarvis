@@ -248,7 +248,11 @@ def main():
 
     # Handle Subcommands
     if args.command == "onboard":
-        asyncio.run(run_onboarding())
+        try:
+            asyncio.run(run_onboarding())
+        except KeyboardInterrupt:
+            console.print("\n  [error]Onboarding interrupted. Please restart J.A.R.V.I.S., Sir.[/error]\n")
+            sys.exit(1)
         sys.exit(0)
     elif args.command == "update":
         script_path = scripts_dir / "update.sh"
