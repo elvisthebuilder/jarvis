@@ -19,6 +19,7 @@ from ..tools.registry import registry
 from ..memory.store import MemoryStore
 from ..memory.preferences import PreferenceManager
 from ..config.settings import JarvisConfig
+from ..utils.resilience import retry_async
 
 logger = logging.getLogger(__name__)
 
@@ -283,7 +284,11 @@ class JarvisAgent:
                 tool_functions.append(func)
 
         try:
-            response = self._gemini_client.models.generate_content(
+            # Wrap the Gemini call in the Resilience Protocol (async retry)
+            response = await retry_async(
+                self._gemini_client.aio.models.generate_content,
+                max_retries=3,
+                initial_delay=2.0,
                 model=self.config.gemini.model,
                 contents=user_input,
                 config=genai_types.GenerateContentConfig(
