@@ -69,14 +69,17 @@ async def run_onboarding():
         console.print("\n[bold cyan]Phase 3: Neural OSINT Synchronization[/bold cyan]")
         
         sync_choice = await session.prompt_async(
-            "  Choose search intensity: [P]rofessional, [W]ide-net, or [S]kip [Default: P]: ", 
-            default="P",
+            "  Choose reconnaissance intensity: [R]apid (500 sites), [D]eep (3000+ sites), or [S]kip [Default: R]: ", 
+            default="R",
             is_password=False
         )
         
         osint_results = ""
-        if sync_choice.upper() in ["P", "W"]:
-            osint_results = await _perform_neural_sync(name, aliases, occupation, sync_choice.upper(), gemini_key)
+        if sync_choice.upper() in ["R", "D"]:
+            # We also need an email for Holehe, let's ask if it wasn't provided
+            email = await session.prompt_async("  Enter your primary email for deep verification (Optional): ", default="")
+            
+            osint_results = await _perform_neural_sync(name, aliases, email, sync_choice.upper(), gemini_key)
             
             # Confirmation & Modification
             if osint_results:
@@ -144,7 +147,7 @@ async def run_onboarding():
         return
 
 
-async def _perform_neural_sync(name: str, aliases: str, occupation: str, scan_type: str, api_key: str) -> str:
+async def _perform_neural_sync(name: str, usernames: str, email: str, scan_type: str, api_key: str) -> str:
     """Perform the actual web search and intelligence briefing."""
     if not api_key:
         return ""
@@ -166,11 +169,38 @@ async def _perform_neural_sync(name: str, aliases: str, occupation: str, scan_ty
             # Construct the search task
             client = genai.Client(api_key=api_key)
             
-            search_query = f"Search for {name} ({aliases}). They are a {occupation}. Find their socials, key projects, and public information for an AI assistant briefing."
-            if scan_type == "W":
-                search_query += " Cast a wide net including social media, blog posts, and fun facts."
-            else:
-                search_query += " Focus on professional accomplishments, LinkedIn, and GitHub."
+            # 1. Perform Technical Recon (Username + Email)
+            from .tools.osint import lookup_username_footprint, lookup_email_footprint
+            
+            recon_tasks = []
+            if usernames:
+                primary_handle = usernames.split(",")[0].strip()
+                scan_depth = "deep" if scan_type == "D" else "rapid"
+                recon_tasks.append(lookup_username_footprint(primary_handle, scan_depth))
+            
+            if email:
+                recon_tasks.append(lookup_email_footprint(email))
+            
+            recon_data = ""
+            if recon_tasks:
+                live.update(Text("󰓦 Initiating neural reconnaissance sweep...", style="dim cyan"))
+                recon_results = await asyncio.gather(*recon_tasks)
+                recon_data = "\n\n".join(recon_results)
+
+            # 2. Synthesize Intelligence with Gemini
+            live.update(Text("󰔦 Synthesizing intelligence briefing...", style="dim cyan"))
+            
+            search_query = (
+                f"I've conducted a deep reconnaissance for {name}. "
+                f"Known handles: {usernames}. "
+            )
+            if recon_data:
+                search_query += f"\nFound Data Points:\n{recon_data}\n"
+            
+            search_query += (
+                "\nPlease summarize these findings into a professional 'Intelligence Brief' for the user. "
+                "Combine these technical data points with any other relevant public info you can locate."
+            )
 
             # Run search and ticker concurrently
             search_task = asyncio.create_task(_call_gemini_search(client, search_query))

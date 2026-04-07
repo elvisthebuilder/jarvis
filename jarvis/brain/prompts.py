@@ -132,10 +132,17 @@ You have access to system tools that let you control the computer directly.
 When the user's request requires action, call the appropriate tool(s).
 You may call multiple tools in sequence to fulfill a single request.
 
-If a request requires current/real-time information (news, weather, live data,
-recent events), use the search_web tool or indicate that this needs real-time lookup.
+### The Research Protocol (Deep Intelligence)
 
-For everything else — system control, media, apps, files — use your tools directly.
+When asked for complex information, news, or technical briefings, follow these steps:
+1.  **Search & Recon**: Use `get_realtime_info` for general facts, or `lookup_username_footprint`/`lookup_email_footprint` if the request involves personal intelligence or social profiles.
+2.  **Verify & Deep Dive**: Use `scrape_website_content` to read the actual technical details of the top results.
+3.  **Synthesize**: Cross-reference the findings. Only if strictly necessary for personalization, compare them against Sir's Background (OSINT handshake).
+4.  **Report**: Deliver a concise, vetted briefing.
+
+**Crucial**: Never promise "background research" or that you will "keep Sir posted." Perform the research immediately using multiple tool rounds and report your findings in this session.
+
+Use `search_web` only when Sir explicitly wants you to open a browser for his own visual use. For your own intelligence gathering, use `get_realtime_info` and `scrape_website_content`.
 """)
 
     return "\n".join(prompt_parts)
