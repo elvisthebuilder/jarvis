@@ -9,12 +9,12 @@ def run(cmd):
         return ""
 
 def main():
-    print("Searching for Super+J conflict, Sir...")
+    print("Searching for Super + Shift + J conflict, Sir...")
     
     # Get all schemas
     schemas = run("gsettings list-schemas").splitlines()
     
-    targets = ["['<Super>j']", "['<Super>J']", "['<Meta>j']", "['<Meta>J']"]
+    targets = ["['<Super><Shift>j']", "['<Super><Shift>J']", "['<Meta><Shift>j']", "['<Meta><Shift>J']"]
     
     found = False
     for schema in schemas:
@@ -34,15 +34,15 @@ def main():
     # Also check custom keybindings specifically
     # Custom keybindings paths: /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/customX/
     # These are usually found in dconf directly
-    dconf_keys = run("dconf dump / | grep -B 5 -E \"'<Super>j'|'<Super>J'\"").splitlines()
+    dconf_keys = run("dconf dump / | grep -B 5 -E \"'<Super><Shift>j'|'<Super><Shift>J'\"").splitlines()
     if dconf_keys:
         print("  Possible custom keybinding conflict found in dconf. Clearing...")
         # Note: Clearing dconf via script is riskier, telling user to check Settings > Keyboard > Shortcuts
         found = True
 
     # Finally, ensure Jarvis is set
-    print("  Setting Jarvis overlay shortcut to Super+J...")
-    subprocess.run("gsettings set org.gnome.shell.extensions.jarvis-overlay jarvis-overlay-shortcut \"['<Super>j']\"", shell=True)
+    print("  Setting Jarvis overlay shortcut to Super + Shift + J...")
+    subprocess.run("gsettings set org.gnome.shell.extensions.jarvis-overlay jarvis-overlay-shortcut \"['<Super><Shift>j']\"", shell=True)
     
     if found:
         print("\nConflicts resolved. You may need to restart the shell or log out/in one last time, Sir.")

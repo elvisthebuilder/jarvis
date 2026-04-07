@@ -33,7 +33,7 @@ Jarvis utilizes a synchronized neural pipeline to balance extreme reasoning with
 Upon first boot, Jarvis initiates a multi-phase "Stark Interview" to synchronize with his primary user. This includes a proactive intelligence crawl (OSINT) to gather your professional milestones, projects (like **APPBAI**), and digital footprint, ensuring a deeply personalized experience from second one.
 
 ### 🖥️ Native GNOME System Control (The Overlay)
-Jarvis doesn't just talk; he *acts*. Integrated via GNOME D-Bus and native Linux tooling:
+Jarvis doesn't just talk; he *acts*. Integrated via GNOME D-Bus and native Linux tooling. Summon him anywhere with **<Super> + <Shift> + J**.
 - **Media Mastery:** Full MPRIS2 integration (Spotify, VLC, Browser).
 - **System Internals:** Real-time controls for brightness, volume, power, and thermal monitoring.
 - **App Orchestration:** Launch, manage, and monitor system processes with a simple phrase.

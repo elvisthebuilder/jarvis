@@ -132,7 +132,7 @@ async def run_onboarding():
         console.print(Panel(
             f"[bold green]✓ Synchronization Complete.[/bold green]\n\n"
             f"Welcome home, {name}. I've configured my systems to your specifications.\n"
-            f"You can now summon me with [bold cyan]Super+J[/bold cyan] at any time.",
+            f"You can now summon me with [bold cyan]Super + Shift + J[/bold cyan] at any time.",
             title="[bold cyan]✦ J.A.R.V.I.S.[/bold cyan]",
             border_style="cyan",
             padding=(1, 2),
