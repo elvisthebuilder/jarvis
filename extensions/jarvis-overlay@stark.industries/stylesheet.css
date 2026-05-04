@@ -1,14 +1,13 @@
 /* J.A.R.V.I.S. 2.0 - Glassmorphism Dock Theme */
 
 .jarvis-dock {
-    background-color: rgba(18, 18, 18, 0.55);
-    border-radius: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    padding: 12px;
+    background-color: rgba(20, 20, 20, 0.4); /* More transparent for glass feel */
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly brighter border */
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    padding: 14px;
     color: #ffffff;
-    min-height: 180px; /* Reduced width, so we need more height */
-    /* Blur is handled by Shell.BlurEffect in JS */
+    min-height: 200px;
 }
 
 /* History Conversation Area */
@@ -75,8 +74,7 @@
 .jarvis-msg-text {
     line-height: 1.5;
     font-family: 'Inter', sans-serif;
-    selection-background-color: rgba(0, 255, 255, 0.3);
-    selection-color: #ffffff;
+    /* Selection colors moved to JS to avoid CSS warnings */
 }
 
 .jarvis-msg-text tt {

@@ -56,14 +56,15 @@ class JarvisOverlay extends St.BoxLayout {
             // 2. Safely apply Glassmorphism effect
             try {
                 this._blurEffect = new Shell.BlurEffect();
-                this._blurEffect.brightness = 0.6;
+                this._blurEffect.brightness = 0.85; // Less darkening for clearer glass
                 this._blurEffect.mode = Shell.BlurMode.BACKGROUND;
                 
                 // Handle different shell versions for the blur radius property
+                let radius = 60; // Increased for "premium" feel
                 if ('blur_radius' in this._blurEffect) {
-                    this._blurEffect.blur_radius = 40;
+                    this._blurEffect.blur_radius = radius;
                 } else if ('radius' in this._blurEffect) {
-                    this._blurEffect.radius = 40;
+                    this._blurEffect.radius = radius;
                 }
                 
                 this.add_effect(this._blurEffect);
@@ -302,31 +303,27 @@ class JarvisOverlay extends St.BoxLayout {
     }
 
     _scrollToBottom() {
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
-            try {
-                if (this._scrollAdjustment) {
-                    let upper = this._scrollAdjustment.get_upper();
-                    let pageSize = this._scrollAdjustment.get_page_size();
-                    let value = this._scrollAdjustment.get_value();
-                    
-                    let endValue = upper - pageSize;
-                    if (endValue <= 0) return;
+        if (!this._scrollAdjustment) return;
 
-                    // Threshold increase and logic refinement
-                    let isNearBottom = value >= (endValue - 100); 
-                    
-                    if (this._needsScrollToBottom || isNearBottom) {
-                        this._scrollAdjustment.ease({
-                            value: endValue,
-                            duration: 350, // Slightly slower for better visibility
-                            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn(`J.A.R.V.I.S. Scroll Error: ${e.message}`);
-            } finally {
-                this._needsScrollToBottom = false;
+        // Ensure we're in a layout cycle
+        let upper = this._scrollAdjustment.get_upper();
+        let pageSize = this._scrollAdjustment.get_page_size();
+        let endValue = upper - pageSize;
+
+        if (endValue > 0) {
+            this._scrollAdjustment.ease({
+                value: endValue,
+                duration: 400,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+        }
+        
+        // Safety: ensure it reaches bottom after layout settling
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            let u = this._scrollAdjustment.get_upper();
+            let p = this._scrollAdjustment.get_page_size();
+            if (u - p > 0) {
+                this._scrollAdjustment.set_value(u - p);
             }
         });
     }
@@ -359,6 +356,13 @@ class JarvisOverlay extends St.BoxLayout {
         // Markdown rendering with Pango Markup
         label.clutter_text.use_markup = true;
         label.clutter_text.selectable = true; // Allow text selection
+        
+        // Set selection colors in JS to avoid CSS property warnings
+        try {
+            let selectionBg = new Clutter.Color({ red: 0, green: 255, blue: 255, alpha: 80 });
+            label.clutter_text.selection_color = selectionBg;
+        } catch (e) {}
+
         label.clutter_text.set_markup(this._mdToPango(text));
         
         // Anti-truncation logic
