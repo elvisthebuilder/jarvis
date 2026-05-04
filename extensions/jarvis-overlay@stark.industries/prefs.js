@@ -1,6 +1,7 @@
 import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
+import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
@@ -16,31 +17,57 @@ export default class JarvisPreferences extends ExtensionPreferences {
         });
         page.add(group);
 
-        const row = new Adw.ActionRow({
-            title: 'Summon Shortcut',
-            subtitle: 'Configure globally in System Settings -> Keyboard -> Custom Shortcuts',
+        // --- Shortcut Setting ---
+        const shortcutGroup = new Adw.PreferencesGroup({
+            title: 'Keyboard Shortcut',
+            description: 'The key combination used to toggle the Jarvis overlay',
         });
-        
-        const button = new Gtk.Button({
-            label: 'Open Settings',
+        page.add(shortcutGroup);
+
+        const settings = this.getSettings();
+        const shortcutRow = new Adw.ActionRow({
+            title: 'Toggle Jarvis',
+            subtitle: 'Click to record a new shortcut',
+        });
+        shortcutGroup.add(shortcutRow);
+
+        const shortcutLabel = new Gtk.ShortcutLabel({
+            accelerator: settings.get_strv('jarvis-overlay-shortcut')[0] || '',
             valign: Gtk.Align.CENTER,
         });
+        shortcutRow.add_suffix(shortcutLabel);
 
-        button.connect('clicked', () => {
-            try {
-                Gio.AppInfo.create_from_commandline(
-                    'gnome-control-center keyboard',
-                    null,
-                    Gio.AppInfoCreateFlags.NONE
-                ).launch([], null);
-            } catch (e) {
-                console.error('Failed to launch settings:', e);
-            }
+        const editBtn = new Gtk.Button({
+            icon_name: 'document-edit-symbolic',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['flat'],
         });
+        shortcutRow.add_suffix(editBtn);
 
-        row.add_suffix(button);
-        row.activatable_widget = button;
-        group.add(row);
+        editBtn.connect('clicked', () => {
+            editBtn.sensitive = false;
+            shortcutRow.subtitle = 'Press any key combination... (Esc to cancel)';
+            
+            const controller = new Gtk.EventControllerKey();
+            window.add_controller(controller);
+
+            const signalId = controller.connect('key-pressed', (ctrl, keyval, keycode, state) => {
+                const mask = state & Gtk.accelerator_get_default_mod_mask();
+                const name = Gtk.accelerator_name(keyval, mask);
+
+                if (keyval === Gdk.KEY_Escape) {
+                    // Cancel
+                } else if (name) {
+                    settings.set_strv('jarvis-overlay-shortcut', [name]);
+                    shortcutLabel.accelerator = name;
+                }
+
+                shortcutRow.subtitle = 'Click to record a new shortcut';
+                editBtn.sensitive = true;
+                window.remove_controller(controller);
+                return Gdk.EVENT_STOP;
+            });
+        });
 
         // --- Debug Logs ---
         const logGroup = new Adw.PreferencesGroup({
