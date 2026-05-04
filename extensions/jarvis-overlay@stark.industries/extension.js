@@ -5,6 +5,7 @@ import Clutter from 'gi://Clutter';
 import Shell from 'gi://Shell';
 import Pango from 'gi://Pango';
 import GLib from 'gi://GLib';
+import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -46,6 +47,7 @@ class JarvisOverlay extends St.BoxLayout {
             this._thinkingMsg = null;
             this._thinkingStep = 0;
             this._thinkingTimeoutId = 0;
+            this._needsScrollToBottom = false;
             
             // 1. MUST build UI first so references like this._entry exist even if effects fail
             this._buildUI();
@@ -96,9 +98,9 @@ class JarvisOverlay extends St.BoxLayout {
     }
 
     _updatePosition() {
-        // Use a tiny delay to ensure children have calculated their preferred height
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
-            if (!this.visible) return GLib.SOURCE_REMOVE;
+        // Use Meta.later_add to ensure children have calculated their preferred height
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            if (!this.visible || !this.get_stage()) return;
             
             let monitor = Main.layoutManager.primaryMonitor;
             let width = 640; 
@@ -109,7 +111,6 @@ class JarvisOverlay extends St.BoxLayout {
                 monitor.x + (monitor.width - width) / 2,
                 monitor.y + monitor.height - height - 40
             );
-            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -279,15 +280,36 @@ class JarvisOverlay extends St.BoxLayout {
     }
 
     _scrollToBottom() {
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
             try {
                 if (this._scrollAdjustment) {
-                    this._scrollAdjustment.set_value(
-                        this._scrollAdjustment.get_upper() - this._scrollAdjustment.get_page_size()
-                    );
+                    let upper = this._scrollAdjustment.get_upper();
+                    let pageSize = this._scrollAdjustment.get_page_size();
+                    let value = this._scrollAdjustment.get_value();
+                    
+                    let endValue = upper - pageSize;
+                    if (endValue <= 0) return;
+
+                    // Sticky logic: scroll if we're near the bottom or if it's a new message
+                    let isNearBottom = value >= (endValue - 60);
+                    
+                    if (this._needsScrollToBottom || isNearBottom) {
+                        if (this._scrollAdjustment.ease) {
+                            this._scrollAdjustment.ease({
+                                value: endValue,
+                                duration: 250,
+                                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                            });
+                        } else {
+                            this._scrollAdjustment.set_value(endValue);
+                        }
+                    }
                 }
-            } catch (e) {}
-            return GLib.SOURCE_REMOVE;
+            } catch (e) {
+                console.warn(`J.A.R.V.I.S. Scroll Error: ${e.message}`);
+            } finally {
+                this._needsScrollToBottom = false;
+            }
         });
     }
 
@@ -328,6 +350,7 @@ class JarvisOverlay extends St.BoxLayout {
         let pos = this._historyBox.get_children().indexOf(this._thinkingMsg);
         this._historyBox.insert_child_at_index(msgBox, pos);
         
+        this._needsScrollToBottom = true;
         this._updatePosition();
         this._scrollToBottom();
     }
