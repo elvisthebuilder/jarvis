@@ -42,18 +42,18 @@ class AssistantInterface(ServiceInterface):
         return None
 
     @method()
-    async def Notify(self, message: str):
+    async def Notify(self, message: 's'):
         """Method to trigger a notification from external sources."""
         logger.info(f"D-Bus request: Notify -> {message}")
         self.NotifySignal(message)
 
     @signal()
-    def NotifySignal(self, message: str):
+    def NotifySignal(self, message: 's'):
         """Signal emitted when Jarvis wants to send a proactive message."""
         return [message]
 
     @method()
-    async def Ask(self, text: str) -> str:
+    async def Ask(self, text: 's') -> 's':
         """Process a request from the UI and return the response."""
         if not text.strip():
             return "Sir?"
@@ -77,7 +77,7 @@ class AssistantInterface(ServiceInterface):
         self.agent.new_session()
 
     @dbus_property(access=PropertyAccess.READ)
-    def IsThinking(self) -> bool:
+    def IsThinking(self) -> 'b':
         """Whether Jarvis is currently processing a request."""
         return self._is_thinking
 
