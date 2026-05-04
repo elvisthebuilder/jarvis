@@ -116,17 +116,24 @@ class JarvisOverlay extends St.BoxLayout {
 
     _mdToPango(text) {
         if (!text) return '';
-        // Escape existing markup
+        // Escape existing markup characters
         let escaped = text.replace(/&/g, '&amp;')
                           .replace(/</g, '&lt;')
                           .replace(/>/g, '&gt;');
         
         return escaped
+            // Triple bold/italic (***text***)
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<b><i>$1</i></b>')
+            // Bold (**text**)
             .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
             .replace(/__(.*?)__/g, '<b>$1</b>')
+            // Italic (*text*)
             .replace(/\*(.*?)\*/g, '<i>$1</i>')
             .replace(/_(.*?)_/g, '<i>$1</i>')
-            .replace(/`(.*?)`/g, '<tt>$1</tt>');
+            // Code (`text`)
+            .replace(/`(.*?)`/g, '<tt>$1</tt>')
+            // Horizontal rule (--- or ***)
+            .replace(/^(\s*[-*_]){3,}\s*$/gm, '────────────────────────────────');
     }
 
     _safeSet(actor, prop, value) {
@@ -351,6 +358,7 @@ class JarvisOverlay extends St.BoxLayout {
         
         // Markdown rendering with Pango Markup
         label.clutter_text.use_markup = true;
+        label.clutter_text.selectable = true; // Allow text selection
         label.clutter_text.set_markup(this._mdToPango(text));
         
         // Anti-truncation logic

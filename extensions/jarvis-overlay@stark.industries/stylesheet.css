@@ -75,6 +75,8 @@
 .jarvis-msg-text {
     line-height: 1.5;
     font-family: 'Inter', sans-serif;
+    selection-background-color: rgba(0, 255, 255, 0.3);
+    selection-color: #ffffff;
 }
 
 .jarvis-msg-text tt {
