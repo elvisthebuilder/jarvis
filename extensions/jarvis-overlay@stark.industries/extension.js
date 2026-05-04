@@ -19,6 +19,7 @@ const AssistantIfaceXML = `
         <arg type="s" direction="in" name="text"/>
         <arg type="s" direction="out" name="response"/>
     </method>
+    <method name="Toggle"></method>
     <method name="Clear"></method>
     <property name="IsThinking" type="b" access="read"/>
     <signal name="Toggled"></signal>
@@ -36,7 +37,7 @@ class JarvisOverlay extends St.BoxLayout {
         try {
             super._init({
                 style_class: 'jarvis-dock',
-                vertical: true,
+                vertical: false,
                 visible: false,
                 reactive: true,
                 can_focus: true,
@@ -103,17 +104,17 @@ class JarvisOverlay extends St.BoxLayout {
     _updatePosition() {
         Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
             if (!this.visible || !this.get_stage()) return;
-            
+
             let monitor = Main.layoutManager.primaryMonitor;
             if (!monitor) monitor = Main.layoutManager.get_primary_monitor();
             
             let width = 640; 
-            let [minH, height] = this.get_preferred_height(width);
-            
             this.set_size(width, -1);
+            let [minH, natH] = this.get_preferred_height(width);
+            
             this.set_position(
                 monitor.x + (monitor.width - width) / 2,
-                monitor.y + monitor.height - height - 40
+                monitor.y + monitor.height - natH - 60
             );
         });
     }
@@ -602,35 +603,67 @@ class JarvisOverlay extends St.BoxLayout {
 });
 
 export default class JarvisExtension extends Extension {
-    enable() {
-        this._overlay = null;
-        this._settings = this.getSettings('org.gnome.shell.extensions.jarvis-overlay');
-
-        // 1. Direct Keyboard Shortcut (Super + J)
+    _setupHotkey() {
+        this._removeHotkey();
+        const shortcut = this._settings.get_strv('jarvis-overlay-shortcut');
+        
         Main.wm.addKeybinding(
             'jarvis-overlay-shortcut',
             this._settings,
             Meta.KeyBindingFlags.NONE,
-            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
-            () => { this._toggleOverlay(); }
+            Shell.ActionMode.ALL,
+            () => this._toggleJarvis()
         );
+    }
+
+    async _toggleJarvis() {
+        try {
+            if (!this._proxy) {
+                this._proxy = new AssistantProxy(
+                    Gio.DBus.session,
+                    'org.jarvis.Assistant',
+                    '/org/jarvis/Assistant'
+                );
+            }
+            // Use the remote toggle to ensure daemon awareness
+            await this._proxy.ToggleRemote();
+        } catch (e) {
+            // Fallback to local toggle if daemon is unreachable
+            this._toggleOverlay();
+        }
+    }
+
+    _removeHotkey() {
+        Main.wm.removeKeybinding('jarvis-overlay-shortcut');
+    }
+
+    enable() {
+        this._overlay = null;
+        this._settings = this.getSettings('org.gnome.shell.extensions.jarvis-overlay');
         
-        // 2. D-Bus Signal Listener (for daemon-triggered toggles)
-        this._signalId = Gio.DBus.session.signal_subscribe(
-            null,
+        this._proxy = new AssistantProxy(
+            Gio.DBus.session,
             'org.jarvis.Assistant',
-            'Toggled',
-            '/org/jarvis/Assistant',
-            null,
-            Gio.DBusSignalFlags.NONE,
-            () => { this._toggleOverlay(); }
+            '/org/jarvis/Assistant'
         );
+
+        // Listen for the Toggled signal directly from the proxy
+        this._proxy.connectSignal('Toggled', () => {
+            Main.notify('J.A.R.V.I.S.', 'Signal Received: Toggling Overlay');
+            this._toggleOverlay();
+        });
+
+        this._setupHotkey();
         
-        console.log('J.A.R.V.I.S. Assistant enabled. Shortcut: Super+J');
+        this._settings.connect('changed::jarvis-overlay-shortcut', () => {
+            this._setupHotkey();
+        });
+
+        console.log('J.A.R.V.I.S. Assistant enabled.');
     }
 
     disable() {
-        Main.wm.removeKeybinding('jarvis-overlay-shortcut');
+        this._removeHotkey();
 
         if (this._signalId) {
             Gio.DBus.session.signal_unsubscribe(this._signalId);
@@ -653,6 +686,8 @@ export default class JarvisExtension extends Extension {
                 Main.layoutManager.addTopChrome(this._overlay);
             }
             this._overlay.toggle();
+        } catch (e) {
+            console.error(`[Jarvis] Toggle error: ${e.message}`);
         } finally {
             this._isToggling = false;
         }

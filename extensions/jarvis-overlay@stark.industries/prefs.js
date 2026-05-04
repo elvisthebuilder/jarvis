@@ -24,7 +24,7 @@ export default class JarvisPreferences extends ExtensionPreferences {
         });
         page.add(shortcutGroup);
 
-        const settings = this.getSettings();
+        const settings = this.getSettings('org.gnome.shell.extensions.jarvis-overlay');
         const shortcutRow = new Adw.ActionRow({
             title: 'Toggle Jarvis',
             subtitle: 'Click to record a new shortcut',
@@ -57,6 +57,10 @@ export default class JarvisPreferences extends ExtensionPreferences {
 
                 if (keyval === Gdk.KEY_Escape) {
                     // Cancel
+                } else if (mask === 0) {
+                    // Ignore single-key shortcuts
+                    shortcutRow.subtitle = 'Please use a combination (e.g. Super+J)';
+                    return Gdk.EVENT_STOP;
                 } else if (name) {
                     settings.set_strv('jarvis-overlay-shortcut', [name]);
                     shortcutLabel.accelerator = name;
@@ -121,14 +125,17 @@ export default class JarvisPreferences extends ExtensionPreferences {
 
         const refreshLogs = () => {
             try {
+                refreshBtn.sensitive = false;
                 let combinedLogs = "=== EXTENSION LOGS (journalctl) ===\n";
-                const [, stdout, stderr, status] = GLib.spawn_command_line_sync('journalctl -n 200 /usr/bin/gnome-shell');
+                // Capture logs from gnome-shell that mention jarvis
+                const [, stdout, stderr, status] = GLib.spawn_command_line_sync('journalctl -n 200 --user _EXE=/usr/bin/gnome-shell');
                 if (status === 0) {
                     const text = new TextDecoder('utf-8').decode(stdout);
-                    combinedLogs += text.split('\n')
+                    const filtered = text.split('\n')
                                          .filter(line => line.toLowerCase().includes('jarvis'))
                                          .slice(-50)
                                          .join('\n');
+                    combinedLogs += filtered || "No extension logs found in recent entries.";
                 }
 
                 combinedLogs += "\n\n=== DAEMON LOGS (local file) ===\n";
@@ -142,13 +149,15 @@ export default class JarvisPreferences extends ExtensionPreferences {
                         combinedLogs += daemonText.split('\n').slice(-100).join('\n');
                     }
                 } else {
-                    combinedLogs += `No daemon log found at: ${logPath}`;
+                    combinedLogs += `No daemon log found for today at: ${logPath}`;
                 }
 
                 textView.get_buffer().set_text(combinedLogs, -1);
+                refreshBtn.sensitive = true;
             } catch (e) {
                 console.error(e);
                 textView.get_buffer().set_text(`Failed to get logs: ${e.message}`, -1);
+                refreshBtn.sensitive = true;
             }
         };
 
@@ -157,7 +166,15 @@ export default class JarvisPreferences extends ExtensionPreferences {
         copyBtn.connect('clicked', () => {
             const buffer = textView.get_buffer();
             const text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), false);
-            textView.get_clipboard().set_text(text);
+            const clipboard = Gdk.Display.get_default().get_clipboard();
+            clipboard.set(text);
+            
+            const oldLabel = copyBtn.label;
+            copyBtn.label = 'Copied!';
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
+                copyBtn.label = oldLabel;
+                return GLib.SOURCE_REMOVE;
+            });
         });
 
         // Load logs initially when setting page opens
