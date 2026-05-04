@@ -155,14 +155,10 @@ class JarvisOverlay extends St.BoxLayout {
 
             this._historyScroll.add_child(this._historyBox);
             
-            // Auto-scroll logic
+            // Auto-scroll: keep a reference to the adjustment
             try {
-                let scrollbar = this._historyScroll.get_vscroll_bar();
-                scrollbar.connect('changed', () => {
-                    let adjustment = scrollbar.get_adjustment();
-                    adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size());
-                });
-            } catch (e) { console.warn("J.A.R.V.I.S. Scroll logic fail"); }
+                this._scrollAdjustment = this._historyScroll.get_vscroll_bar().get_adjustment();
+            } catch (e) { console.warn("J.A.R.V.I.S. Scroll init fail"); }
 
             // 2. The CRITICAL Entry - define it early!
             this._entry = new St.Entry({
@@ -179,13 +175,13 @@ class JarvisOverlay extends St.BoxLayout {
 
             // 3. Buttons and Dock Area
             this._plusBtn = new St.Button({ style_class: 'jarvis-icon-button' });
-            this._plusBtn.set_child(new St.Icon({ icon_name: 'list-add-symbolic', icon_size: 20 }));
+            this._plusBtn.set_child(new St.Icon({ icon_name: 'list-add-symbolic', icon_size: 16 }));
 
             this._recordBtn = new St.Button({ style_class: 'jarvis-icon-button' });
-            this._recordBtn.set_child(new St.Icon({ icon_name: 'audio-input-microphone-symbolic', icon_size: 20 }));
+            this._recordBtn.set_child(new St.Icon({ icon_name: 'audio-input-microphone-symbolic', icon_size: 16 }));
 
             this._sendBtn = new St.Button({ style_class: 'jarvis-icon-button jarvis-send-btn' });
-            this._sendBtn.set_child(new St.Icon({ icon_name: 'mail-send-symbolic', icon_size: 20 }));
+            this._sendBtn.set_child(new St.Icon({ icon_name: 'mail-send-symbolic', icon_size: 16 }));
             this._sendBtn.connect('clicked', () => {
                 let text = this._entry.get_text();
                 if (text.trim()) this._processInput(text);
@@ -282,6 +278,19 @@ class JarvisOverlay extends St.BoxLayout {
         });
     }
 
+    _scrollToBottom() {
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            try {
+                if (this._scrollAdjustment) {
+                    this._scrollAdjustment.set_value(
+                        this._scrollAdjustment.get_upper() - this._scrollAdjustment.get_page_size()
+                    );
+                }
+            } catch (e) {}
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
     _hideThinking() {
         this._thinkingMsg.visible = false;
         if (this._thinkingTimeoutId) {
@@ -320,6 +329,7 @@ class JarvisOverlay extends St.BoxLayout {
         this._historyBox.insert_child_at_index(msgBox, pos);
         
         this._updatePosition();
+        this._scrollToBottom();
     }
 
     show() {

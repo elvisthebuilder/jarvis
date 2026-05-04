@@ -13,8 +13,8 @@
 
 /* History Conversation Area */
 .jarvis-history-scroll {
-    min-height: 100px;
-    max-height: 480px; /* Stronger limit for dock aesthetics */
+    min-height: 60px;
+    max-height: 280px;
     margin-bottom: 8px;
     padding: 4px 12px;
 }
@@ -69,8 +69,8 @@
     background-color: transparent;
     border: none;
     color: #ffffff;
-    font-size: 18px;
-    padding: 8px;
+    font-size: 13px;
+    padding: 6px;
     caret-color: #00ffff;
 }
 
@@ -80,7 +80,7 @@
 
 /* Icons and Buttons */
 .jarvis-icon-button {
-    padding: 8px;
+    padding: 5px;
     border-radius: 50%;
     background-color: transparent;
     transition: background-color 0.2s;
