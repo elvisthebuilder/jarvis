@@ -114,6 +114,21 @@ class JarvisOverlay extends St.BoxLayout {
         });
     }
 
+    _mdToPango(text) {
+        if (!text) return '';
+        // Escape existing markup
+        let escaped = text.replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;');
+        
+        return escaped
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/__(.*?)__/g, '<b>$1</b>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/_(.*?)_/g, '<i>$1</i>')
+            .replace(/`(.*?)`/g, '<tt>$1</tt>');
+    }
+
     _safeSet(actor, prop, value) {
         try {
             if (typeof actor[prop] === 'function') {
@@ -290,19 +305,15 @@ class JarvisOverlay extends St.BoxLayout {
                     let endValue = upper - pageSize;
                     if (endValue <= 0) return;
 
-                    // Sticky logic: scroll if we're near the bottom or if it's a new message
-                    let isNearBottom = value >= (endValue - 60);
+                    // Threshold increase and logic refinement
+                    let isNearBottom = value >= (endValue - 100); 
                     
                     if (this._needsScrollToBottom || isNearBottom) {
-                        if (this._scrollAdjustment.ease) {
-                            this._scrollAdjustment.ease({
-                                value: endValue,
-                                duration: 250,
-                                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                            });
-                        } else {
-                            this._scrollAdjustment.set_value(endValue);
-                        }
+                        this._scrollAdjustment.ease({
+                            value: endValue,
+                            duration: 350, // Slightly slower for better visibility
+                            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                        });
                     }
                 }
             } catch (e) {
@@ -334,10 +345,13 @@ class JarvisOverlay extends St.BoxLayout {
         });
         
         let label = new St.Label({
-            text: text,
             style_class: 'jarvis-msg-text',
             x_expand: true,
         });
+        
+        // Markdown rendering with Pango Markup
+        label.clutter_text.use_markup = true;
+        label.clutter_text.set_markup(this._mdToPango(text));
         
         // Anti-truncation logic
         label.clutter_text.line_wrap = true;

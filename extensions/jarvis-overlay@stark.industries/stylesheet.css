@@ -20,7 +20,34 @@
 }
 
 .jarvis-history-box {
-    font-weight: normal; /* Avoid empty ruleset while keeping container selector */
+    font-weight: normal; 
+}
+
+/* Custom Scrollbar styling */
+.jarvis-history-scroll .st-scroll-bar {
+    width: 6px;
+    background-color: transparent;
+    margin: 4px 2px;
+}
+
+.jarvis-history-scroll StScrollBar StBin#trough {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.jarvis-history-scroll StScrollBar StButton#vhandle {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.jarvis-history-scroll StScrollBar StButton#vhandle:hover {
+    background-color: rgba(0, 255, 255, 0.4);
+}
+
+.jarvis-history-scroll StScrollBar StButton#vhandle:active {
+    background-color: rgba(0, 255, 255, 0.6);
 }
 
 /* Message Bubbles - Now clean text lines */
@@ -46,7 +73,16 @@
 }
 
 .jarvis-msg-text {
-    line-height: 1.4;
+    line-height: 1.5;
+    font-family: 'Inter', sans-serif;
+}
+
+.jarvis-msg-text tt {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #00ffff;
 }
 
 .jarvis-thinking {
