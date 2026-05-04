@@ -50,6 +50,7 @@ class JarvisOverlay extends St.BoxLayout {
             this._needsScrollToBottom = false;
             this._state = 'idle';
             this._pulseStep = 0;
+            this._isMini = false;
             
             // 1. MUST build UI first so references like this._entry exist even if effects fail
             this._buildUI();
@@ -147,14 +148,17 @@ class JarvisOverlay extends St.BoxLayout {
         } else if (state === 'response') {
             this._stopPulse();
             // Sharp Gold for execution/completion
-            this.set_style('border-color: rgba(255, 195, 80, 0.6); box-shadow: 0 0 15px rgba(255, 195, 80, 0.2);');
+            let glow = 'border-color: rgba(255, 195, 80, 0.6); box-shadow: 0 0 15px rgba(255, 195, 80, 0.2);';
+            this.set_style(glow);
+            this._miniDock.set_style(glow);
             GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
                 if (this._state === 'response') this._setState('idle');
                 return GLib.SOURCE_REMOVE;
             });
         } else {
             this._stopPulse();
-            this.set_style(''); // Reset to CSS defaults
+            this.set_style(''); 
+            this._miniDock.set_style('');
         }
     }
 
@@ -164,8 +168,10 @@ class JarvisOverlay extends St.BoxLayout {
         this._pulseId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
             this._pulseStep += 0.1;
             let opacity = 0.2 + 0.3 * Math.abs(Math.sin(this._pulseStep));
-            // Deep Indigo for research/processing
-            this.set_style(`border-color: rgba(90, 70, 220, ${opacity}); box-shadow: 0 0 20px rgba(90, 70, 220, ${opacity * 0.3});`);
+            // Deep Indigo pulse
+            let glow = `border-color: rgba(90, 70, 220, ${opacity}); box-shadow: 0 0 20px rgba(90, 70, 220, ${opacity * 0.3});`;
+            this.set_style(glow);
+            this._miniDock.set_style(glow);
             return GLib.SOURCE_CONTINUE;
         });
     }
@@ -283,10 +289,47 @@ class JarvisOverlay extends St.BoxLayout {
             this._inputDock.add_child(this._entry);
             this._inputDock.add_child(this._btnsRight);
 
+            // 4. The "Orb" (Mini Dock)
+            this._miniDock = new St.Button({
+                style_class: 'jarvis-mini-dock',
+                visible: false,
+                reactive: true,
+            });
+            this._miniDock.set_child(new St.Icon({
+                icon_name: 'view-app-grid-symbolic',
+                icon_size: 20
+            }));
+            
+            // Drag logic for the Orb
+            let dragAction = new Clutter.DragAction();
+            dragAction.connect('drag-end', () => {
+                let [x, y] = this._miniDock.get_position();
+                this._miniX = x;
+                this._miniY = y;
+            });
+            this._miniDock.add_action(dragAction);
+            
+            this._miniDock.connect('clicked', () => this._toggleMiniMode());
+
+            // Minimize Button in main dock
+            this._minimizeBtn = new St.Button({
+                style_class: 'jarvis-minimize-btn',
+                x_align: St.Align.END,
+            });
+            this._minimizeBtn.set_child(new St.Icon({
+                icon_name: 'window-minimize-symbolic',
+                icon_size: 14
+            }));
+            this._minimizeBtn.connect('clicked', () => this._toggleMiniMode());
+
             // Assembly
+            this.add_child(this._minimizeBtn); // Top-right minimize
             this.add_child(this._historyScroll);
             this.add_child(this._divider);
             this.add_child(this._inputDock);
+            
+            // Add miniDock to stage (top level)
+            Main.layoutManager.addTopChrome(this._miniDock);
 
         } catch (e) {
             console.error(`J.A.R.V.I.S. Redesign Error during _buildUI: ${e.message}`);
@@ -466,11 +509,63 @@ class JarvisOverlay extends St.BoxLayout {
         });
     }
 
-    toggle() {
-        if (this.visible) {
-            this.hide();
+    _toggleMiniMode() {
+        this._isMini = !this._isMini;
+        
+        if (this._isMini) {
+            // Shrink main dock into the Orb
+            this.ease({
+                opacity: 0,
+                scale_x: 0.1,
+                scale_y: 0.1,
+                duration: 300,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => {
+                    this.visible = false;
+                    this._miniDock.visible = true;
+                    this._miniDock.opacity = 0;
+                    this._miniDock.set_position(
+                        this.x + this.width / 2 - 25,
+                        this.y + this.height - 25
+                    );
+                    this._miniDock.ease({
+                        opacity: 255,
+                        duration: 200,
+                        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    });
+                }
+            });
         } else {
-            this.show();
+            // Expand Orb back into main dock
+            this._miniDock.ease({
+                opacity: 0,
+                duration: 200,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => {
+                    this._miniDock.visible = false;
+                    this.visible = true;
+                    this.opacity = 0;
+                    this.scale_x = 0.1;
+                    this.scale_y = 0.1;
+                    this.ease({
+                        opacity: 255,
+                        scale_x: 1.0,
+                        scale_y: 1.0,
+                        duration: 350,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                    });
+                    this._entry.grab_key_focus();
+                }
+            });
+        }
+    }
+
+    toggle() {
+        if (this._isMini) {
+            this._toggleMiniMode();
+        } else {
+            if (this.visible) this.hide();
+            else this.show();
         }
     }
 

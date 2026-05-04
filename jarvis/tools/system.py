@@ -287,3 +287,58 @@ def get_current_location() -> str:
         logger.error(f"Location lookup failed: {e}")
         return "Failed to retrieve location due to network error."
 
+@registry.register
+def get_active_application() -> str:
+    """Identify the application currently focused by the user."""
+    try:
+        # Get active window ID
+        result = subprocess.run(
+            ["xprop", "-root", "_NET_ACTIVE_WINDOW"],
+            capture_output=True, text=True, timeout=2
+        )
+        if result.returncode != 0: return "Unknown"
+        
+        wid = result.stdout.split()[-1]
+        if wid == "0x0": return "Desktop"
+        
+        # Get window name
+        result = subprocess.run(
+            ["xprop", "-id", wid, "WM_CLASS", "WM_NAME"],
+            capture_output=True, text=True, timeout=2
+        )
+        return result.stdout.strip().replace('\n', ' | ')
+    except Exception:
+        return "Unable to determine active application."
+
+
+@registry.register
+def get_media_status() -> str:
+    """Check what music or movie is currently playing on the system."""
+    try:
+        result = subprocess.run(
+            ["playerctl", "metadata", "--format", "{{artist}} - {{title}} [{{status}}]"],
+            capture_output=True, text=True, timeout=2
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return f"Current Media: {result.stdout.strip()}"
+        return "No media currently playing."
+    except Exception:
+        return "Media controller (playerctl) not found."
+
+
+@registry.register
+def get_system_snapshot() -> str:
+    """Get a comprehensive snapshot of the entire PC state (Apps, Media, Resources)."""
+    app = get_active_application()
+    media = get_media_status()
+    resources = get_system_info()
+    battery = get_battery_status()
+    
+    return (
+        f"--- SYSTEM SNAPSHOT ---\n"
+        f"Active App: {app}\n"
+        f"Media: {media}\n"
+        f"Resources: {resources}\n"
+        f"Power: {battery}\n"
+        f"Time: {datetime.now().strftime('%H:%M:%S')}"
+    )
