@@ -11,7 +11,7 @@ import asyncio
 import logging
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, method, dbus_property, PropertyAccess, signal
-from dbus_next import Variant
+from dbus_next import Variant, NameFlag
 
 from ..brain.agent import JarvisAgent
 
@@ -42,18 +42,18 @@ class AssistantInterface(ServiceInterface):
         return None
 
     @method()
-    async def Notify(self, message: 's'):
+    async def Notify(self, message: str):
         """Method to trigger a notification from external sources."""
         logger.info(f"D-Bus request: Notify -> {message}")
         self.NotifySignal(message)
 
     @signal()
-    def NotifySignal(self, message: 's'):
+    def NotifySignal(self, message: str):
         """Signal emitted when Jarvis wants to send a proactive message."""
         return [message]
 
     @method()
-    async def Ask(self, text: 's') -> 's':
+    async def Ask(self, text: str) -> str:
         """Process a request from the UI and return the response."""
         if not text.strip():
             return "Sir?"
@@ -77,7 +77,7 @@ class AssistantInterface(ServiceInterface):
         self.agent.new_session()
 
     @dbus_property(access=PropertyAccess.READ)
-    def IsThinking(self) -> 'b':
+    def IsThinking(self) -> bool:
         """Whether Jarvis is currently processing a request."""
         return self._is_thinking
 
@@ -89,8 +89,8 @@ async def start_dbus_service(agent: JarvisAgent):
         interface = AssistantInterface(agent)
         bus.export('/org/jarvis/Assistant', interface)
         
-        # Request the name on the bus
-        await bus.request_name('org.jarvis.Assistant')
+        # Request the name on the bus, allow replacing existing instances
+        await bus.request_name('org.jarvis.Assistant', flags=NameFlag.REPLACE_EXISTING)
         
         logger.info("D-Bus service 'org.jarvis.Assistant' started at /org/jarvis/Assistant")
         

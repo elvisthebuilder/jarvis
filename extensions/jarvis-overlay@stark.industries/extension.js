@@ -101,11 +101,12 @@ class JarvisOverlay extends St.BoxLayout {
     }
 
     _updatePosition() {
-        // Use Meta.later_add to ensure children have calculated their preferred height
         Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
             if (!this.visible || !this.get_stage()) return;
             
             let monitor = Main.layoutManager.primaryMonitor;
+            if (!monitor) monitor = Main.layoutManager.get_primary_monitor();
+            
             let width = 640; 
             let [minH, height] = this.get_preferred_height(width);
             
@@ -353,10 +354,14 @@ class JarvisOverlay extends St.BoxLayout {
                     this._isMini = true;
                     this._miniDock.visible = true;
                     this._miniDock.opacity = 0;
-                    // Position it at the bottom center or a default location
+                    
+                    let monitor = Main.layoutManager.primaryMonitor;
+                    if (!monitor) monitor = Main.layoutManager.get_primary_monitor();
+                    
+                    // Position it at the bottom center
                     this._miniDock.set_position(
-                        Main.layoutManager.primaryMonitor.width / 2 - 25,
-                        Main.layoutManager.primaryMonitor.height - 100
+                        monitor.x + (monitor.width / 2) - 25,
+                        monitor.y + monitor.height - 100
                     );
                     this._miniDock.ease({
                         opacity: 255,
@@ -599,25 +604,34 @@ class JarvisOverlay extends St.BoxLayout {
 export default class JarvisExtension extends Extension {
     enable() {
         this._overlay = null;
-        
-        // Subscribe directly to the Toggled signal on the session bus
-        // This works even if the Python daemon connects/disconnects arbitrarily.
-        this._signalId = Gio.DBus.session.signal_subscribe(
-            null, // sender
-            'org.jarvis.Assistant', // interface name
-            'Toggled', // signal name
-            '/org/jarvis/Assistant', // object path
-            null, // arg0
-            Gio.DBusSignalFlags.NONE,
-            (connection, sender, objectPath, interfaceName, signalName, parameters) => {
-                this._toggleOverlay();
-            }
+        this._settings = this.getSettings('org.gnome.shell.extensions.jarvis-overlay');
+
+        // 1. Direct Keyboard Shortcut (Super + J)
+        Main.wm.addKeybinding(
+            'jarvis-overlay-shortcut',
+            this._settings,
+            Meta.KeyBindingFlags.NONE,
+            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+            () => { this._toggleOverlay(); }
         );
         
-        console.log('J.A.R.V.I.S. Assistant enabled. Listening for D-Bus Toggle signal.');
+        // 2. D-Bus Signal Listener (for daemon-triggered toggles)
+        this._signalId = Gio.DBus.session.signal_subscribe(
+            null,
+            'org.jarvis.Assistant',
+            'Toggled',
+            '/org/jarvis/Assistant',
+            null,
+            Gio.DBusSignalFlags.NONE,
+            () => { this._toggleOverlay(); }
+        );
+        
+        console.log('J.A.R.V.I.S. Assistant enabled. Shortcut: Super+J');
     }
 
     disable() {
+        Main.wm.removeKeybinding('jarvis-overlay-shortcut');
+
         if (this._signalId) {
             Gio.DBus.session.signal_unsubscribe(this._signalId);
             this._signalId = null;

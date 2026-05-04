@@ -2,9 +2,9 @@
 <schemalist gettext-domain="jarvis">
   <schema id="org.gnome.shell.extensions.jarvis-overlay" path="/org/gnome/shell/extensions/jarvis-overlay/">
     <key name="jarvis-overlay-shortcut" type="as">
-      <default>["&lt;Super&gt;&lt;Shift&gt;j"]</default>
+      <default>["&lt;Super&gt;j"]</default>
       <summary>The keyboard shortcut to toggle Jarvis overlay</summary>
-      <description>Default is Super + Shift + J</description>
+      <description>Default is Super + J</description>
     </key>
   </schema>
 </schemalist>

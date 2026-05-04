@@ -201,22 +201,38 @@ def set_volume(level: int) -> str:
     level: Volume percentage from 0 to 100
     """
     level = max(0, min(100, level))
+    
+    # Try pactl (PulseAudio/PipeWire)
     result = _run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"])
     if result.returncode == 0:
         return f"Volume set to {level}%."
+        
+    # Fallback: amixer (ALSA)
+    result = _run(["amixer", "set", "Master", f"{level}%"])
+    if result.returncode == 0:
+        return f"Volume set to {level}% via amixer."
+        
     return f"Failed to set volume: {result.stderr.strip()}"
 
 
 @registry.register
 def get_volume() -> str:
     """Get the current system volume level."""
+    # Try pactl
     result = _run(["pactl", "get-sink-volume", "@DEFAULT_SINK@"])
     if result.returncode == 0:
-        # Parse volume from output like "Volume: front-left: 65536 / 100% / 0.00 dB"
         for part in result.stdout.split("/"):
             part = part.strip()
             if "%" in part:
                 return f"Current volume is {part}."
+    
+    # Fallback: amixer
+    result = _run(["amixer", "get", "Master"])
+    if result.returncode == 0:
+        match = re.search(r"\[(\d+)%\]", result.stdout)
+        if match:
+            return f"Current volume is {match.group(1)}%."
+            
     return "Unable to determine current volume."
 
 
@@ -227,9 +243,17 @@ def mute_audio(mute: bool = True) -> str:
     mute: True to mute, False to unmute
     """
     value = "1" if mute else "0"
+    # Try pactl
     result = _run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", value])
     if result.returncode == 0:
         return "Audio muted." if mute else "Audio unmuted."
+        
+    # Fallback: amixer
+    am_val = "mute" if mute else "unmute"
+    result = _run(["amixer", "set", "Master", am_val])
+    if result.returncode == 0:
+        return f"Audio {am_val}d."
+        
     return "Failed to change mute state."
 
 
