@@ -13,8 +13,8 @@
 /* History Conversation Area */
 .jarvis-history-scroll {
     min-height: 60px;
-    max-height: 280px;
-    margin-bottom: 8px;
+    max-height: 180px; /* Reduced for a more compact, surgical feel */
+    margin-bottom: 12px;
     padding: 4px 12px;
 }
 
@@ -22,31 +22,16 @@
     font-weight: normal; 
 }
 
-/* Custom Scrollbar styling */
+/* Invisible Scrollbar - Functional but hidden for Zero-UI */
 .jarvis-history-scroll .st-scroll-bar {
-    width: 6px;
-    background-color: transparent;
-    margin: 4px 2px;
+    width: 0px;
+    opacity: 0;
 }
 
-.jarvis-history-scroll StScrollBar StBin#trough {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-}
-
+.jarvis-history-scroll StScrollBar StBin#trough,
 .jarvis-history-scroll StScrollBar StButton#vhandle {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    background-color: transparent;
     border: none;
-    transition: background-color 0.2s;
-}
-
-.jarvis-history-scroll StScrollBar StButton#vhandle:hover {
-    background-color: rgba(255, 255, 255, 0.25);
-}
-
-.jarvis-history-scroll StScrollBar StButton#vhandle:active {
-    background-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Message Bubbles - Now clean text lines */
