@@ -48,6 +48,8 @@ class JarvisOverlay extends St.BoxLayout {
             this._thinkingStep = 0;
             this._thinkingTimeoutId = 0;
             this._needsScrollToBottom = false;
+            this._state = 'idle';
+            this._pulseStep = 0;
             
             // 1. MUST build UI first so references like this._entry exist even if effects fail
             this._buildUI();
@@ -56,11 +58,10 @@ class JarvisOverlay extends St.BoxLayout {
             // 2. Safely apply Glassmorphism effect
             try {
                 this._blurEffect = new Shell.BlurEffect();
-                this._blurEffect.brightness = 0.85; // Less darkening for clearer glass
+                this._blurEffect.brightness = 0.75; // Darker for better legibility (Apple style)
                 this._blurEffect.mode = Shell.BlurMode.BACKGROUND;
                 
-                // Handle different shell versions for the blur radius property
-                let radius = 60; // Increased for "premium" feel
+                let radius = 35; // Tighter, more precise blur
                 if ('blur_radius' in this._blurEffect) {
                     this._blurEffect.blur_radius = radius;
                 } else if ('radius' in this._blurEffect) {
@@ -137,6 +138,45 @@ class JarvisOverlay extends St.BoxLayout {
             .replace(/^(\s*[-*_]){3,}\s*$/gm, '────────────────────────────────');
     }
 
+    _setState(state) {
+        if (this._state === state && state !== 'response') return;
+        this._state = state;
+
+        if (state === 'thinking') {
+            this._startPulse();
+        } else if (state === 'response') {
+            this._stopPulse();
+            // Sharp Gold for execution/completion
+            this.set_style('border-color: rgba(255, 195, 80, 0.6); box-shadow: 0 0 15px rgba(255, 195, 80, 0.2);');
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+                if (this._state === 'response') this._setState('idle');
+                return GLib.SOURCE_REMOVE;
+            });
+        } else {
+            this._stopPulse();
+            this.set_style(''); // Reset to CSS defaults
+        }
+    }
+
+    _startPulse() {
+        if (this._pulseId) return;
+        this._pulseStep = 0;
+        this._pulseId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+            this._pulseStep += 0.1;
+            let opacity = 0.2 + 0.3 * Math.abs(Math.sin(this._pulseStep));
+            // Deep Indigo for research/processing
+            this.set_style(`border-color: rgba(90, 70, 220, ${opacity}); box-shadow: 0 0 20px rgba(90, 70, 220, ${opacity * 0.3});`);
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    _stopPulse() {
+        if (this._pulseId) {
+            GLib.source_remove(this._pulseId);
+            this._pulseId = 0;
+        }
+    }
+
     _safeSet(actor, prop, value) {
         try {
             if (typeof actor[prop] === 'function') {
@@ -179,32 +219,46 @@ class JarvisOverlay extends St.BoxLayout {
 
             this._historyScroll.add_child(this._historyBox);
             
-            // Auto-scroll: keep a reference to the adjustment
+            // Auto-scroll: signal-driven via notify::upper
             try {
                 this._scrollAdjustment = this._historyScroll.get_vscroll_bar().get_adjustment();
+                this._scrollAdjustment.connect('notify::upper', () => {
+                    if (this._needsScrollToBottom) {
+                        this._scrollToBottom();
+                    }
+                });
             } catch (e) { console.warn("J.A.R.V.I.S. Scroll init fail"); }
 
-            // 2. The CRITICAL Entry - define it early!
+            // 2. The CRITICAL Entry
             this._entry = new St.Entry({
                 style_class: 'jarvis-dock-entry',
+                hint_text: 'Ask J.A.R.V.I.S. anything...',
+                can_focus: true,
+                x_expand: true,
             });
-            this._safeSet(this._entry, 'hint_text', 'Ask J.A.R.V.I.S. anything...');
-            this._safeSet(this._entry, 'can_focus', true);
-            this._safeSet(this._entry, 'x_expand', true);
             
             this._entry.clutter_text.connect('activate', () => {
                 let text = this._entry.get_text();
                 if (text.trim()) this._processInput(text);
             });
 
-            // 3. Buttons and Dock Area
-            this._plusBtn = new St.Button({ style_class: 'jarvis-icon-button' });
-            this._plusBtn.set_child(new St.Icon({ icon_name: 'list-add-symbolic', icon_size: 16 }));
+            this._entry.clutter_text.connect('text-changed', () => {
+                let hasText = this._entry.get_text().trim().length > 0;
+                this._sendBtn.ease({
+                    opacity: hasText ? 255 : 0,
+                    duration: 200,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+            });
 
+            // 3. Buttons and Dock Area
             this._recordBtn = new St.Button({ style_class: 'jarvis-icon-button' });
             this._recordBtn.set_child(new St.Icon({ icon_name: 'audio-input-microphone-symbolic', icon_size: 16 }));
 
-            this._sendBtn = new St.Button({ style_class: 'jarvis-icon-button jarvis-send-btn' });
+            this._sendBtn = new St.Button({ 
+                style_class: 'jarvis-icon-button jarvis-send-btn',
+                opacity: 0, // Hidden by default (Zero-UI)
+            });
             this._sendBtn.set_child(new St.Icon({ icon_name: 'mail-send-symbolic', icon_size: 16 }));
             this._sendBtn.connect('clicked', () => {
                 let text = this._entry.get_text();
@@ -213,22 +267,25 @@ class JarvisOverlay extends St.BoxLayout {
 
             this._btnsRight = new St.BoxLayout({ style_class: 'jarvis-dock-right' });
             this._safeSet(this._btnsRight, 'set_spacing', 4);
-            this._safeSet(this._btnsRight, 'spacing', 4);
-            
             this._btnsRight.add_child(this._sendBtn);
             this._btnsRight.add_child(this._recordBtn);
 
-            this._inputDock = new St.BoxLayout({ style_class: 'jarvis-input-dock' });
-            this._safeSet(this._inputDock, 'vertical', false);
-            this._safeSet(this._inputDock, 'set_spacing', 8);
-            this._safeSet(this._inputDock, 'spacing', 8);
+            // Hairline Divider
+            this._divider = new St.Widget({
+                style_class: 'jarvis-divider',
+                height: 1,
+                x_expand: true,
+            });
 
-            this._inputDock.add_child(this._plusBtn);
+            this._inputDock = new St.BoxLayout({ style_class: 'jarvis-input-dock' });
+            this._safeSet(this._inputDock, 'set_spacing', 8);
+
             this._inputDock.add_child(this._entry);
             this._inputDock.add_child(this._btnsRight);
 
             // Assembly
             this.add_child(this._historyScroll);
+            this.add_child(this._divider);
             this.add_child(this._inputDock);
 
         } catch (e) {
@@ -254,7 +311,7 @@ class JarvisOverlay extends St.BoxLayout {
     _processInput(text) {
         this._addMessage('user', text);
         this._entry.set_text('');
-        
+        this._setState('thinking');
         this._showThinking();
 
         this._proxy.get_connection().call(
@@ -273,9 +330,13 @@ class JarvisOverlay extends St.BoxLayout {
                     let reply = connection.call_finish(result);
                     let [response] = reply.recursiveUnpack();
                     if (response) {
+                        this._setState('response');
                         this._addMessage('jarvis', response);
+                    } else {
+                        this._setState('idle');
                     }
                 } catch (e) {
+                    this._setState('idle');
                     this._addMessage('jarvis', `System Error: ${e.message}`);
                 }
             }
@@ -305,7 +366,6 @@ class JarvisOverlay extends St.BoxLayout {
     _scrollToBottom() {
         if (!this._scrollAdjustment) return;
 
-        // Ensure we're in a layout cycle
         let upper = this._scrollAdjustment.get_upper();
         let pageSize = this._scrollAdjustment.get_page_size();
         let endValue = upper - pageSize;
@@ -313,19 +373,10 @@ class JarvisOverlay extends St.BoxLayout {
         if (endValue > 0) {
             this._scrollAdjustment.ease({
                 value: endValue,
-                duration: 400,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: 350,
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
             });
         }
-        
-        // Safety: ensure it reaches bottom after layout settling
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
-            let u = this._scrollAdjustment.get_upper();
-            let p = this._scrollAdjustment.get_page_size();
-            if (u - p > 0) {
-                this._scrollAdjustment.set_value(u - p);
-            }
-        });
     }
 
     _hideThinking() {
@@ -357,9 +408,9 @@ class JarvisOverlay extends St.BoxLayout {
         label.clutter_text.use_markup = true;
         label.clutter_text.selectable = true; // Allow text selection
         
-        // Set selection colors in JS to avoid CSS property warnings
+        // Set selection colors in JS to match "Invisible Intelligence" palette
         try {
-            let selectionBg = new Clutter.Color({ red: 0, green: 255, blue: 255, alpha: 80 });
+            let selectionBg = new Clutter.Color({ red: 120, green: 160, blue: 255, alpha: 60 });
             label.clutter_text.selection_color = selectionBg;
         } catch (e) {}
 
@@ -386,18 +437,26 @@ class JarvisOverlay extends St.BoxLayout {
         this._updatePosition();
         this._entry.grab_key_focus();
         
-        // Animation
+        // Surfacing Animation: emergence from the OS
         this.opacity = 0;
+        this.scale_y = 0.96;
+        this.translation_y = 20; 
+
         this.ease({
             opacity: 255,
-            duration: 300,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            scale_y: 1.0,
+            translation_y: 0,
+            duration: 400,
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
         });
     }
 
     hide() {
+        this._setState('idle');
         this.ease({
             opacity: 0,
+            scale_y: 0.98,
+            translation_y: 10,
             duration: 200,
             mode: Clutter.AnimationMode.EASE_IN_QUAD,
             onComplete: () => {

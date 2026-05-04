@@ -1,12 +1,12 @@
 /* J.A.R.V.I.S. 2.0 - Glassmorphism Dock Theme */
 
 .jarvis-dock {
-    background-color: rgba(20, 20, 20, 0.4); /* More transparent for glass feel */
-    border-radius: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly brighter border */
+    background-color: rgba(28, 28, 30, 0.75); /* Apple Dark Elevated surface */
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Hairline border */
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-    padding: 14px;
-    color: #ffffff;
+    padding: 20px; /* Increased for breathing room */
+    color: rgba(255, 255, 255, 0.92);
     min-height: 200px;
 }
 
@@ -35,18 +35,18 @@
 }
 
 .jarvis-history-scroll StScrollBar StButton#vhandle {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     border: none;
     transition: background-color 0.2s;
 }
 
 .jarvis-history-scroll StScrollBar StButton#vhandle:hover {
-    background-color: rgba(0, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.25);
 }
 
 .jarvis-history-scroll StScrollBar StButton#vhandle:active {
-    background-color: rgba(0, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Message Bubbles - Now clean text lines */
@@ -59,16 +59,16 @@
 }
 
 .jarvis-msg-user {
-    margin-left: 20px;
+    margin-left: 30px;
     align-self: flex-end;
-    color: #00ffff; /* Vibrant Cyan */
+    color: rgba(120, 160, 255, 0.95); /* Soft, confident blue */
     text-align: right;
 }
 
 .jarvis-msg-jarvis {
-    margin-right: 20px;
+    margin-right: 30px;
     align-self: flex-start;
-    color: #ffffff; /* Clean White */
+    color: rgba(255, 255, 255, 0.92); 
 }
 
 .jarvis-msg-text {
@@ -78,36 +78,39 @@
 }
 
 .jarvis-msg-text tt {
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 1px 4px;
-    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 6px;
     font-family: monospace;
-    color: #00ffff;
+    color: rgba(160, 200, 255, 0.9);
 }
 
 .jarvis-thinking {
-    color: #ffffff;
-    font-style: italic;
+    color: rgba(255, 255, 255, 0.4);
     font-size: 13px;
-    margin-top: 8px;
-    margin-bottom: 12px;
+    margin-top: 10px;
+    margin-bottom: 16px;
+}
+
+.jarvis-divider {
+    background-color: rgba(255, 255, 255, 0.06);
+    margin: 8px 0;
 }
 
 /* Bottom Input Dock Bar */
 .jarvis-input-dock {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 22px;
-    padding: 6px 12px;
-    /* spacing: 8px; moved to JS */
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 8px 14px;
 }
 
 .jarvis-dock-entry {
     background-color: transparent;
     border: none;
-    color: #ffffff;
-    font-size: 13px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
     padding: 6px;
-    caret-color: #00ffff;
+    caret-color: rgba(120, 160, 255, 0.9);
 }
 
 .jarvis-dock-entry:focus {
@@ -131,7 +134,7 @@
 }
 
 .jarvis-send-btn {
-    color: #00ffff;
+    color: rgba(120, 160, 255, 0.9);
 }
 
 .jarvis-dock-right {
