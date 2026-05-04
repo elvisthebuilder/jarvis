@@ -303,6 +303,7 @@ class JarvisOverlay extends St.BoxLayout {
         // Listen for proactive messages
         this._proxy.connectSignal('NotifySignal', (proxy, senderName, [message]) => {
             if (message) {
+                if (!this.visible) this.show();
                 this._addMessage('jarvis', message);
             }
         });

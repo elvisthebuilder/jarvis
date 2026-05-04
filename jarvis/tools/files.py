@@ -63,17 +63,79 @@ def find_files(name: str, directory: str = "") -> str:
     if not search_dir.exists():
         return f"Directory not found: {directory}"
     
+    # Increased depth and precision for Jarvis
     result = subprocess.run(
-        ["find", str(search_dir), "-maxdepth", "4",
+        ["find", str(search_dir), "-maxdepth", "6",
          "-iname", f"*{name}*", "-type", "f",
          "-not", "-path", "*/.*"],
         capture_output=True, text=True, timeout=15,
     )
     
     if result.returncode == 0 and result.stdout.strip():
-        files = result.stdout.strip().split("\n")[:15]  # Limit results
+        files = result.stdout.strip().split("\n")[:15]
         file_list = "\n".join(f"  - {f}" for f in files)
-        count = len(files)
-        return f"Found {count} file(s) matching '{name}':\n{file_list}"
+        return f"Found {len(files)} file(s) matching '{name}':\n{file_list}"
     
-    return f"No files matching '{name}' found in {search_dir}."
+    return f"No files matching '{name}' found."
+
+
+@registry.register
+def read_file(filepath: str) -> str:
+    """Read the contents of a file.
+    
+    filepath: Path to the file to read
+    """
+    path = Path(filepath).expanduser()
+    if not path.exists():
+        return f"Error: File {filepath} does not exist."
+    if not path.is_file():
+        return f"Error: {filepath} is not a file."
+        
+    try:
+        # Limit read to 10k characters for safety
+        content = path.read_text(encoding='utf-8')
+        if len(content) > 10000:
+            return content[:10000] + "\n... [Content Truncated]"
+        return content
+    except Exception as e:
+        return f"Error reading file: {str(e)}"
+
+
+@registry.register
+def write_file(filepath: str, content: str) -> str:
+    """Write or overwrite content to a file.
+    
+    filepath: Path to the file to write
+    content: The text content to write
+    """
+    path = Path(filepath).expanduser()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding='utf-8')
+        return f"Successfully wrote to {filepath}."
+    except Exception as e:
+        return f"Error writing file: {str(e)}"
+
+
+@registry.register
+def list_directory(directory: str = "") -> str:
+    """List the contents of a directory.
+    
+    directory: Path to the directory (defaults to home)
+    """
+    path = Path(directory).expanduser() if directory else Path.home()
+    if not path.exists() or not path.is_dir():
+        return f"Error: Directory {directory} not found."
+        
+    try:
+        items = list(path.iterdir())
+        files = [f.name for f in items if f.is_file()]
+        dirs = [d.name + "/" for d in items if d.is_dir()]
+        
+        output = []
+        if dirs: output.append(f"Directories: {', '.join(sorted(dirs)[:20])}")
+        if files: output.append(f"Files: {', '.join(sorted(files)[:30])}")
+        
+        return "\n".join(output) if output else "Directory is empty."
+    except Exception as e:
+        return f"Error listing directory: {str(e)}"

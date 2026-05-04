@@ -88,6 +88,7 @@ def load_config() -> JarvisConfig:
         ),
         daemon=DaemonConfig(
             log_level=os.getenv("JARVIS_LOG_LEVEL", "INFO"),
+            shell_unrestricted=os.getenv("JARVIS_SHELL_UNRESTRICTED", "false").lower() == "true",
         ),
         user_title=os.getenv("JARVIS_USER_TITLE", "Sir"),
         user_name=os.getenv("JARVIS_USER_NAME", "Tony Stark"),

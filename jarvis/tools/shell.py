@@ -12,7 +12,7 @@ from .registry import registry
 
 logger = logging.getLogger(__name__)
 
-# Default whitelist of safe, read-only commands
+# Expanded whitelist of safe/standard commands
 DEFAULT_WHITELIST = {
     "ls", "cat", "head", "tail", "wc", "grep", "find", "date", "cal",
     "df", "du", "free", "uptime", "whoami", "hostname", "uname",
@@ -20,6 +20,7 @@ DEFAULT_WHITELIST = {
     "tree", "sort", "uniq", "tr", "cut", "awk", "sed",
     "ip", "ss", "ping", "dig", "nslookup",
     "python3", "node", "git",
+    "mkdir", "cp", "mv", "touch", "chmod", "rm", # Added file management
 }
 
 # Commands that are ALWAYS blocked
@@ -57,9 +58,11 @@ def _is_command_allowed(command: str) -> tuple[bool, str]:
             return False, "Invalid command syntax"
         
         base_cmd = parts[0] if parts else ""
-        if base_cmd in BLOCKED_COMMANDS:
-            return False, f"Command '{base_cmd}' is always blocked for safety"
-        return True, "Unrestricted mode"
+        # In unrestricted mode, we only block absolute system killers
+        SYSTEM_PROTECTED = {"mkfs", "dd", "format", "shutdown", "reboot"}
+        if base_cmd in SYSTEM_PROTECTED:
+            return False, f"Command '{base_cmd}' is a system-level protected command."
+        return True, "Unrestricted mode enabled by Sir."
 
     # Parse the command to get the base command
     try:
@@ -80,8 +83,8 @@ def _is_command_allowed(command: str) -> tuple[bool, str]:
     if base_cmd not in DEFAULT_WHITELIST:
         return False, f"Command '{base_cmd}' is not in the allowed list"
 
-    # Check for pipe/redirect exploits
-    dangerous_chars = [";", "&&", "||", "`", "$(", ">", ">>", "<"]
+    # Check for dangerous operators (allowing basic redirects and sequences)
+    dangerous_chars = ["`", "$(", "|", "<"] # Pipes and subshells still restricted in basic mode
     for char in dangerous_chars:
         if char in command:
             return False, f"Command contains disallowed operator: {char}"
