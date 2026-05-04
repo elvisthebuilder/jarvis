@@ -346,8 +346,27 @@ class JarvisOverlay extends St.BoxLayout {
         // Listen for proactive messages
         this._proxy.connectSignal('NotifySignal', (proxy, senderName, [message]) => {
             if (message) {
-                if (!this.visible) this.show();
                 this._addMessage('jarvis', message);
+                
+                // Instead of the full dock, surface the Orb as an ambient indicator
+                if (!this.visible && !this._miniDock.visible) {
+                    this._isMini = true;
+                    this._miniDock.visible = true;
+                    this._miniDock.opacity = 0;
+                    // Position it at the bottom center or a default location
+                    this._miniDock.set_position(
+                        Main.layoutManager.primaryMonitor.width / 2 - 25,
+                        Main.layoutManager.primaryMonitor.height - 100
+                    );
+                    this._miniDock.ease({
+                        opacity: 255,
+                        duration: 400,
+                        mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                    });
+                }
+                
+                // Pulse to get attention
+                this._setState('thinking'); 
             }
         });
     }
